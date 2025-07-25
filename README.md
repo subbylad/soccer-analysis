@@ -10,6 +10,7 @@ A comprehensive Python toolkit for soccer data analysis, player comparison, and 
 ✅ **Scouting Tools**: Young player discovery and potential analysis  
 ✅ **Position Analysis**: Deep dive into defensive midfielder attributes  
 ✅ **Clean Data Pipeline**: Properly processed and standardized datasets  
+✅ **Interactive Web Dashboard**: Modern web interface with charts and visualizations  
 
 ## Project Structure
 
@@ -27,13 +28,33 @@ socceranalysis/
 │   ├── dm_attributes_analysis.py   # Defensive midfielder analysis
 │   └── check_ugochukwu_agoume.py   # Specific player analysis
 ├── dashboards/
-│   └── quick_demo.py      # Comprehensive demo
+│   ├── quick_demo.py         # Command-line demo
+│   ├── web_dashboard.py      # Interactive web dashboard (Streamlit)
+│   └── improved_dashboard.py # Enhanced player search interface
 └── notebooks/             # Reserved for Jupyter analysis
 ```
 
 ## Quick Start
 
-### 1. Run the Demo
+### 1. 🌐 Web Dashboard (Recommended)
+```bash
+# Easy launcher
+python3 run_dashboard.py
+
+# Or directly with Streamlit
+python3 -m streamlit run dashboards/web_dashboard.py
+```
+
+**Features:**
+- 🔍 **Player Search**: Interactive search with filters
+- 🏆 **Top Performers**: Visual charts of best players
+- 🌟 **Young Prospects**: Scouting analysis with scoring
+- 🌍 **League Analysis**: Compare leagues and distributions
+- 📊 **Interactive Charts**: Hover, zoom, filter data
+
+**Dashboard will open in your browser at:** `http://localhost:8501`
+
+### 2. Command-Line Demo
 ```bash
 python3 dashboards/quick_demo.py
 ```
@@ -44,7 +65,7 @@ This will show:
 - Player comparisons
 - Goals + assists leaderboard
 
-### 2. Basic Usage Examples
+### 3. Basic Usage Examples
 
 #### Search for a Player
 ```python
@@ -149,7 +170,61 @@ Top 10 Goal Scorers (500+ minutes):
 ## Installation
 
 ```bash
+# Install required dependencies
 pip install soccerdata pandas matplotlib seaborn numpy
+
+# For web dashboard
+pip install streamlit plotly
+
+# For development and testing
+pip install pytest pytest-cov
+```
+
+## Testing
+
+The project includes a comprehensive test suite to ensure reliability:
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with coverage report
+pytest --cov=analysis tests/
+
+# Run specific test file
+pytest tests/test_clean_player_analyzer.py -v
+```
+
+## Development
+
+### Project Architecture
+
+- **CleanPlayerAnalyzer**: Main analysis class with robust error handling
+- **Utility Functions**: Shared configuration and helper functions in `analysis/utils.py`
+- **Specialized Modules**: Young player scouting, DM analysis, specific player evaluation
+- **Logging**: Structured logging throughout with configurable levels
+- **Type Hints**: Full type annotation support for better development experience
+
+### Configuration
+
+Key parameters can be customized via `analysis/utils.py`:
+
+```python
+# Potential scoring weights
+POTENTIAL_SCORING_WEIGHTS = {
+    'goals_per_90': 3.0,
+    'assists_per_90': 3.0, 
+    'progressive_carries': 0.05,
+    'progressive_passes': 0.02
+}
+
+# Playing time thresholds
+MIN_MINUTES_THRESHOLDS = {
+    'basic_analysis': 300,
+    'comparison': 500,
+    'scouting': 500,
+    'high_usage': 2000
+}
 ```
 
 ---

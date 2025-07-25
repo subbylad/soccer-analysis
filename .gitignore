@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Data files (optional - uncomment if you don't want to track large data files)
+# data/raw/*.csv
+# data/clean/*.csv
+
+# Logs
+*.log
+query_logs.jsonl
+
+# Temporary files
+.streamlit/secrets.toml
+.DS_Store
+.cache/
+*.tmp
+temp/
+
+# HTML reports and exports
+html_reports/
+static_html/
+exports/
+reports/
+
+# Environment variables
+.env.local
+.env.production
+
+# Cache
+.diskcache/
+cache/
