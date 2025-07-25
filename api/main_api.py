@@ -8,7 +8,7 @@ language soccer analysis requests.
 
 import logging
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from .query_processor import QueryProcessor

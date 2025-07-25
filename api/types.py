@@ -35,13 +35,14 @@ class ResponseType(Enum):
 @dataclass
 class AnalysisRequest:
     """Base class for all analysis requests."""
-    query_type: QueryType
-    original_query: str
+    query_type: QueryType = QueryType.UNKNOWN
+    original_query: str = ""
     confidence: float = 1.0  # How confident we are in the interpretation
     
+@dataclass
 class PlayerSearchRequest(AnalysisRequest):
     """Request to search for specific players."""
-    player_name: str
+    player_name: str = ""
     min_minutes: int = 500
     position: Optional[str] = None
     league: Optional[str] = None
@@ -52,7 +53,7 @@ class PlayerSearchRequest(AnalysisRequest):
 @dataclass
 class PlayerComparisonRequest(AnalysisRequest):
     """Request to compare multiple players."""
-    player_names: List[str]
+    player_names: List[str] = field(default_factory=list)
     comparison_stats: List[str] = field(default_factory=lambda: ['goals', 'assists', 'goals_per_90', 'assists_per_90'])
     min_minutes: int = 500
     
@@ -74,7 +75,7 @@ class YoungProspectsRequest(AnalysisRequest):
 @dataclass
 class TopPerformersRequest(AnalysisRequest):
     """Request to find top performers in a specific stat."""
-    stat: str
+    stat: str = "goals"
     position: Optional[str] = None
     league: Optional[str] = None
     min_minutes: int = 500
@@ -109,17 +110,17 @@ class UnknownRequest(AnalysisRequest):
 @dataclass
 class AnalysisResponse:
     """Base class for all analysis responses."""
-    success: bool
-    response_type: ResponseType
-    original_request: AnalysisRequest
+    success: bool = False
+    response_type: ResponseType = ResponseType.PLAYER_LIST
+    original_request: Optional[AnalysisRequest] = None
     execution_time: float = 0.0
     
 @dataclass
 class PlayerListResponse(AnalysisResponse):
     """Response containing a list of players."""
-    players: pd.DataFrame
-    total_found: int
-    summary: str
+    players: pd.DataFrame = field(default_factory=pd.DataFrame)
+    total_found: int = 0
+    summary: str = ""
     
     def __post_init__(self):
         self.response_type = ResponseType.PLAYER_LIST
@@ -127,10 +128,10 @@ class PlayerListResponse(AnalysisResponse):
 @dataclass
 class ComparisonResponse(AnalysisResponse):
     """Response containing player comparison data."""
-    comparison_table: pd.DataFrame
-    chart_data: Dict[str, Any]
-    insights: List[str]
-    player_cards: List[Dict[str, Any]]
+    comparison_table: pd.DataFrame = field(default_factory=pd.DataFrame)
+    chart_data: Dict[str, Any] = field(default_factory=dict)
+    insights: List[str] = field(default_factory=list)
+    player_cards: List[Dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self):
         self.response_type = ResponseType.COMPARISON_TABLE
@@ -138,10 +139,10 @@ class ComparisonResponse(AnalysisResponse):
 @dataclass
 class ProspectsResponse(AnalysisResponse):
     """Response containing young prospects analysis."""
-    prospects: pd.DataFrame
-    age_groups: Dict[str, pd.DataFrame]
-    league_breakdown: Dict[str, int]
-    top_recommendations: List[Dict[str, Any]]
+    prospects: pd.DataFrame = field(default_factory=pd.DataFrame)
+    age_groups: Dict[str, pd.DataFrame] = field(default_factory=dict)
+    league_breakdown: Dict[str, int] = field(default_factory=dict)
+    top_recommendations: List[Dict[str, Any]] = field(default_factory=list)
     
     def __post_init__(self):
         self.response_type = ResponseType.PLAYER_LIST
@@ -149,7 +150,7 @@ class ProspectsResponse(AnalysisResponse):
 @dataclass
 class ErrorResponse(AnalysisResponse):
     """Response for errors or unknown queries."""
-    error_message: str
+    error_message: str = ""
     suggestions: List[str] = field(default_factory=list)
     help_text: str = ""
     

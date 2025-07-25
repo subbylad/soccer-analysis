@@ -5,309 +5,188 @@ Takes structured analysis responses and formats them for display
 in various UI contexts (chat, dashboard, etc.)
 """
 
+import logging
 from typing import Dict, Any, List, Optional
 import pandas as pd
 from .types import *
 
+logger = logging.getLogger(__name__)
+
 class ResponseFormatter:
     """Formats analysis responses for different UI contexts."""
     
-    def __init__(self):
-        self.ui_context = "chat"  # Default context
-    
-    def format_response(self, response: AnalysisResponse, context: str = "chat") -> Dict[str, Any]:
-        """Format response based on UI context."""
-        self.ui_context = context
+    def format_response(self, response: AnalysisResponse) -> Dict[str, Any]:
+        """Main entry point for formatting responses."""
         
-        formatter_map = {
+        # Map response types to formatters
+        formatters = {
             ResponseType.PLAYER_LIST: self._format_player_list,
             ResponseType.COMPARISON_TABLE: self._format_comparison,
             ResponseType.ERROR: self._format_error
         }
         
-        formatter = formatter_map.get(response.response_type)
-        if not formatter:
-            return self._format_generic(response)
-        
+        formatter = formatters.get(response.response_type, self._format_generic)
         return formatter(response)
     
-    def _format_player_list(self, response: PlayerListResponse) -> Dict[str, Any]:
+    def _format_player_list(self, response) -> Dict[str, Any]:
         """Format player list responses."""
+        
+        # Get the data - handle different response types
+        data_df = pd.DataFrame()
+        summary = "Analysis completed"
+        total_found = 0
+        
+        try:
+            # Handle ProspectsResponse
+            if hasattr(response, 'prospects') and isinstance(response.prospects, pd.DataFrame):
+                data_df = response.prospects
+                summary = f"Found {len(data_df)} young prospects"
+                total_found = len(data_df)
+            
+            # Handle PlayerListResponse  
+            elif hasattr(response, 'players') and isinstance(response.players, pd.DataFrame):
+                data_df = response.players
+                summary = getattr(response, 'summary', f"Found {len(data_df)} players")
+                total_found = getattr(response, 'total_found', len(data_df))
+            
+            # Handle empty case
+            else:
+                summary = "No players found"
+                total_found = 0
+                
+        except Exception as e:
+            logger.error(f"Error extracting data from response: {e}")
+            summary = "Error processing results"
+            total_found = 0
+        
         formatted = {
             "type": "player_list",
             "success": response.success,
-            "summary": response.summary,
-            "total_found": response.total_found,
-            "execution_time": response.execution_time,
+            "summary": summary,
+            "total_found": total_found,
+            "execution_time": getattr(response, 'execution_time', 0),
             "players": [],
             "display_data": None
         }
         
-        # Format individual players
-        for idx, (player_idx, player) in enumerate(response.players.iterrows()):
-            if hasattr(player, 'name') and len(player.name) >= 4:
-                # MultiIndex case
-                player_name = player.name[3]
-                team_name = player.name[2] 
-                league_name = player.name[0]
-            elif 'player' in response.players.columns:
-                # Regular DataFrame case
-                player_name = player.get('player', 'Unknown')
-                team_name = player.get('team', 'Unknown')
-                league_name = player.get('league', 'Unknown')
-            else:
-                # Fallback
-                player_name = f"Player {idx + 1}"
-                team_name = "Unknown Team"
-                league_name = "Unknown League"
-            
-            player_card = {
-                "name": player_name,
-                "team": team_name,
-                "league": league_name,
-                "position": player.get('position', 'N/A'),
-                "age": player.get('age', 'N/A'),
-                "minutes": player.get('minutes', 0),
-                "goals": player.get('goals', 0),
-                "assists": player.get('assists', 0),
-                "goals_per_90": player.get('goals_per_90', 0),
-                "assists_per_90": player.get('assists_per_90', 0),
-                "nationality": player.get('nationality', 'N/A'),
-                "expected_goals": player.get('expected_goals', 0),
-                "expected_assists": player.get('expected_assists', 0)
-            }
-            
-            formatted["players"].append(player_card)
+        # Process players if we have data
+        if not data_df.empty:
+            try:
+                # Convert to simple records format for display
+                formatted["display_data"] = data_df.head(20).to_dict('records')
+                
+                # Create player cards for chat display
+                for idx, row in data_df.head(10).iterrows():
+                    try:
+                        player_card = {
+                            "name": str(row.get('player', f'Player {idx}')),
+                            "team": str(row.get('team', 'Unknown')),
+                            "league": str(row.get('league', 'Unknown')),
+                            "position": str(row.get('position', 'N/A')),
+                            "age": int(row.get('age', 0)) if pd.notna(row.get('age')) else 0,
+                            "minutes": int(row.get('minutes', 0)) if pd.notna(row.get('minutes')) else 0,
+                            "goals": float(row.get('goals', 0)) if pd.notna(row.get('goals')) else 0,
+                            "assists": float(row.get('assists', 0)) if pd.notna(row.get('assists')) else 0
+                        }
+                        formatted["players"].append(player_card)
+                    except Exception as e:
+                        logger.warning(f"Error processing player {idx}: {e}")
+                        continue
+                        
+            except Exception as e:
+                logger.error(f"Error processing player data: {e}")
         
-        # Create display table for UI
-        if not response.players.empty:
-            display_columns = ['player', 'team', 'league', 'position', 'age', 'goals', 'assists', 'minutes']
-            available_columns = [col for col in display_columns if col in response.players.columns]
-            
-            if available_columns:
-                formatted["display_data"] = response.players[available_columns].to_dict('records')
-            else:
-                # Create display data from player cards
-                formatted["display_data"] = [
-                    {
-                        'Player': p['name'],
-                        'Team': p['team'],
-                        'League': p['league'],
-                        'Position': p['position'],
-                        'Age': p['age'],
-                        'Goals': p['goals'],
-                        'Assists': p['assists'],
-                        'Minutes': p['minutes']
-                    }
-                    for p in formatted["players"]
-                ]
-        
-        # Generate chat-friendly text
-        if self.ui_context == "chat":
-            formatted["chat_text"] = self._generate_player_list_chat_text(formatted)
+        # Create chat text
+        formatted["chat_text"] = self._create_chat_text(formatted)
         
         return formatted
     
-    def _format_comparison(self, response: ComparisonResponse) -> Dict[str, Any]:
-        """Format player comparison responses."""
+    def _format_comparison(self, response) -> Dict[str, Any]:
+        """Format comparison responses."""
         formatted = {
             "type": "comparison",
             "success": response.success,
-            "execution_time": response.execution_time,
-            "comparison_table": response.comparison_table.to_dict('records'),
-            "chart_data": response.chart_data,
-            "insights": response.insights,
-            "player_cards": response.player_cards,
-            "summary": f"Comparison of {len(response.player_cards)} players"
+            "summary": f"Comparison of players",
+            "execution_time": getattr(response, 'execution_time', 0),
+            "comparison_data": None,
+            "insights": []
         }
         
-        # Generate chat-friendly text
-        if self.ui_context == "chat":
-            formatted["chat_text"] = self._generate_comparison_chat_text(formatted)
+        try:
+            if hasattr(response, 'comparison_table') and isinstance(response.comparison_table, pd.DataFrame):
+                formatted["comparison_data"] = response.comparison_table.to_dict('records')
+                formatted["summary"] = f"Comparison of {len(response.comparison_table)} players"
+            
+            if hasattr(response, 'insights'):
+                formatted["insights"] = response.insights
+                
+        except Exception as e:
+            logger.error(f"Error formatting comparison: {e}")
         
+        formatted["chat_text"] = self._create_comparison_chat_text(formatted)
         return formatted
     
-    def _format_error(self, response: ErrorResponse) -> Dict[str, Any]:
+    def _format_error(self, response) -> Dict[str, Any]:
         """Format error responses."""
-        formatted = {
+        return {
             "type": "error",
             "success": False,
-            "error_message": response.error_message,
-            "suggestions": response.suggestions,
-            "help_text": response.help_text,
-            "execution_time": response.execution_time
+            "error_message": getattr(response, 'error_message', 'Unknown error'),
+            "suggestions": getattr(response, 'suggestions', []),
+            "execution_time": getattr(response, 'execution_time', 0),
+            "chat_text": f"❌ {getattr(response, 'error_message', 'An error occurred')}"
         }
-        
-        # Generate chat-friendly text
-        if self.ui_context == "chat":
-            formatted["chat_text"] = self._generate_error_chat_text(formatted)
-        
-        return formatted
     
-    def _format_generic(self, response: AnalysisResponse) -> Dict[str, Any]:
-        """Generic formatter for unspecified response types."""
+    def _format_generic(self, response) -> Dict[str, Any]:
+        """Generic formatter for unknown response types."""
         return {
             "type": "generic",
             "success": response.success,
-            "response_type": response.response_type.value,
-            "execution_time": response.execution_time,
-            "raw_response": str(response)
+            "summary": "Analysis completed",
+            "execution_time": getattr(response, 'execution_time', 0),
+            "chat_text": "✅ Analysis completed successfully" if response.success else "❌ Analysis failed"
         }
     
-    def _generate_player_list_chat_text(self, formatted_data: Dict[str, Any]) -> str:
-        """Generate chat-friendly text for player lists."""
-        text_parts = []
+    def _create_chat_text(self, formatted_data: Dict[str, Any]) -> str:
+        """Create chat-friendly text from formatted data."""
         
-        # Summary
-        text_parts.append(f"✅ {formatted_data['summary']}")
-        text_parts.append("")
+        if not formatted_data.get('success', False):
+            return f"❌ {formatted_data.get('error_message', 'Analysis failed')}"
         
-        # Player cards
-        for i, player in enumerate(formatted_data['players'][:5], 1):  # Show max 5 in chat
-            total_ga = player['goals'] + player['assists']
+        summary = formatted_data.get('summary', 'Analysis completed')
+        players = formatted_data.get('players', [])
+        
+        if not players:
+            return f"✅ {summary}\n\nNo players found matching your criteria."
+        
+        # Create a nice text summary
+        text_parts = [f"✅ {summary}\n"]
+        
+        # Add top players
+        text_parts.append("🌟 **Top Players:**")
+        for i, player in enumerate(players[:5], 1):
+            name = player.get('name', 'Unknown')
+            team = player.get('team', 'Unknown')
+            age = player.get('age', 'N/A')
+            position = player.get('position', 'N/A')
             
-            text_parts.append(f"**{i}. {player['name']}** - {player['team']} ({player['league']})")
-            text_parts.append(f"   📍 {player['position']} | Age {player['age']} | {player['nationality']}")
-            text_parts.append(f"   ⚽ {player['goals']} goals ({player['goals_per_90']:.2f}/90) | 🎯 {player['assists']} assists ({player['assists_per_90']:.2f}/90)")
-            text_parts.append(f"   🏃 {player['minutes']:,} minutes | G+A: {total_ga}")
-            text_parts.append("")
+            text_parts.append(f"{i}. **{name}** ({team}) - {position}, Age {age}")
         
-        # Show remaining count if applicable
-        if len(formatted_data['players']) > 5:
-            remaining = len(formatted_data['players']) - 5
-            text_parts.append(f"... and {remaining} more players")
+        if len(players) > 5:
+            text_parts.append(f"\n... and {len(players) - 5} more players")
         
-        return "\\n".join(text_parts)
+        return "\n".join(text_parts)
     
-    def _generate_comparison_chat_text(self, formatted_data: Dict[str, Any]) -> str:
-        """Generate chat-friendly text for comparisons."""
-        text_parts = []
+    def _create_comparison_chat_text(self, formatted_data: Dict[str, Any]) -> str:
+        """Create chat text for comparisons."""
+        summary = formatted_data.get('summary', 'Player comparison')
+        insights = formatted_data.get('insights', [])
         
-        # Summary
-        text_parts.append(f"📊 **{formatted_data['summary']}**")
-        text_parts.append("")
+        text_parts = [f"✅ {summary}\n"]
         
-        # Quick comparison
-        if formatted_data['comparison_table']:
-            for player_data in formatted_data['comparison_table']:
-                text_parts.append(f"**{player_data['Player']}** ({player_data['Team']})")
-                text_parts.append(f"   ⚽ {player_data['Goals']} goals | 🎯 {player_data['Assists']} assists")
-                text_parts.append(f"   📊 {player_data['Goals/90']:.2f} G/90 | {player_data['Assists/90']:.2f} A/90")
-                text_parts.append("")
-        
-        # Insights
-        if formatted_data['insights']:
-            text_parts.append("**🔍 Key Insights:**")
-            for insight in formatted_data['insights']:
+        if insights:
+            text_parts.append("📊 **Key Insights:**")
+            for insight in insights[:3]:
                 text_parts.append(f"• {insight}")
         
-        return "\\n".join(text_parts)
-    
-    def _generate_error_chat_text(self, formatted_data: Dict[str, Any]) -> str:
-        """Generate chat-friendly text for errors."""
-        text_parts = []
-        
-        text_parts.append(f"❌ {formatted_data['error_message']}")
-        text_parts.append("")
-        
-        if formatted_data['suggestions']:
-            text_parts.append("💡 **Try these instead:**")
-            for suggestion in formatted_data['suggestions']:
-                text_parts.append(f"• {suggestion}")
-        
-        if formatted_data['help_text']:
-            text_parts.append("")
-            text_parts.append(formatted_data['help_text'])
-        
-        return "\\n".join(text_parts)
-    
-    def format_for_streamlit(self, response: AnalysisResponse) -> Dict[str, Any]:
-        """Format specifically for Streamlit display."""
-        formatted = self.format_response(response, context="streamlit")
-        
-        # Add Streamlit-specific formatting
-        if response.response_type == ResponseType.PLAYER_LIST:
-            formatted["streamlit_components"] = self._create_streamlit_player_components(formatted)
-        elif response.response_type == ResponseType.COMPARISON_TABLE:
-            formatted["streamlit_components"] = self._create_streamlit_comparison_components(formatted)
-        
-        return formatted
-    
-    def _create_streamlit_player_components(self, formatted_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create Streamlit-specific components for player lists."""
-        components = {
-            "success_message": formatted_data['summary'],
-            "player_cards": [],
-            "dataframe": formatted_data.get('display_data', []),
-            "metrics": {
-                "total_players": formatted_data['total_found'],
-                "execution_time": f"{formatted_data['execution_time']:.2f}s"
-            }
-        }
-        
-        # Format player cards for Streamlit
-        for player in formatted_data['players']:
-            card_html = f"""
-            <div style="border: 2px solid #1f77b4; border-radius: 10px; padding: 15px; margin: 10px 0; background: linear-gradient(135deg, #f8f9fa, #e3f2fd);">
-                <h4 style="color: #1f77b4; margin-bottom: 5px;">⚽ {player['name']}</h4>
-                <p><strong>Team:</strong> {player['team']} ({player['league']})</p>
-                <p><strong>Position:</strong> {player['position']} | <strong>Age:</strong> {player['age']} | <strong>Nationality:</strong> {player['nationality']}</p>
-                <p><strong>Goals:</strong> {player['goals']} ({player['goals_per_90']:.2f}/90) | <strong>Assists:</strong> {player['assists']} ({player['assists_per_90']:.2f}/90)</p>
-                <p><strong>Minutes:</strong> {player['minutes']:,} | <strong>xG:</strong> {player['expected_goals']:.1f} | <strong>xA:</strong> {player['expected_assists']:.1f}</p>
-            </div>
-            """
-            components["player_cards"].append(card_html)
-        
-        return components
-    
-    def _create_streamlit_comparison_components(self, formatted_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create Streamlit-specific components for comparisons."""
-        components = {
-            "summary": formatted_data['summary'],
-            "comparison_dataframe": formatted_data['comparison_table'],
-            "chart_data": formatted_data['chart_data'],
-            "insights": formatted_data['insights'],
-            "player_cards": formatted_data['player_cards']
-        }
-        
-        return components
-    
-    def create_chart_config(self, chart_data: Dict[str, Any], chart_type: str = "scatter") -> Dict[str, Any]:
-        """Create chart configuration for visualization libraries."""
-        if chart_type == "scatter":
-            return {
-                "type": "scatter",
-                "data": {
-                    "x": chart_data.get('goals_per_90', []),
-                    "y": chart_data.get('assists_per_90', []),
-                    "labels": chart_data.get('players', []),
-                    "hover_data": {
-                        "Goals": chart_data.get('total_goals', []),
-                        "Assists": chart_data.get('total_assists', [])
-                    }
-                },
-                "layout": {
-                    "title": "Goals vs Assists per 90 minutes",
-                    "xaxis_title": "Goals per 90 min",
-                    "yaxis_title": "Assists per 90 min",
-                    "height": 500
-                }
-            }
-        
-        return {"type": "unknown", "data": chart_data}
-    
-    def create_summary_stats(self, response: AnalysisResponse) -> Dict[str, Any]:
-        """Create summary statistics for any response."""
-        stats = {
-            "execution_time": f"{response.execution_time:.2f}s",
-            "success": response.success,
-            "query_type": response.original_request.query_type.value
-        }
-        
-        if hasattr(response, 'total_found'):
-            stats["total_results"] = response.total_found
-        
-        if hasattr(response, 'players') and not response.players.empty:
-            stats["data_points"] = len(response.players)
-        
-        return stats
+        return "\n".join(text_parts)
