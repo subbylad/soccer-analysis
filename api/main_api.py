@@ -28,6 +28,7 @@ class APIConfig:
     max_cache_size: int = 100
     log_level: str = "INFO"
     default_min_minutes: int = 500
+    openai_api_key: Optional[str] = None  # For GPT-4 enhanced query processing
 
 class SoccerAnalyticsAPI:
     """
@@ -58,7 +59,9 @@ class SoccerAnalyticsAPI:
         # Initialize components
         try:
             logger.info("Initializing Soccer Analytics API...")
-            self.query_processor = QueryProcessor()
+            # Pass OpenAI API key to QueryProcessor for GPT-4 enhancement
+            openai_key = getattr(self.config, 'openai_api_key', None)
+            self.query_processor = QueryProcessor(openai_api_key=openai_key)
             self.analysis_router = AnalysisRouter(data_dir=self.config.data_dir)
             self.response_formatter = ResponseFormatter()
             
@@ -190,12 +193,12 @@ class SoccerAnalyticsAPI:
             "Find young midfielders under 21",
             "Top scorers in Premier League", 
             "Best defensive midfielders",
-            "Show me forwards in La Liga",
+            "Who can play alongside Kobbie Mainoo?",
+            "Find players similar to Pedri",
             "Young prospects under 23",
-            "Compare Silva vs De Bruyne",
-            "Find players like Pedri",
+            "Alternative to Rodri in Ligue 1",
             "Top assists in Serie A",
-            "Defenders with high passing"
+            "Defenders who complement Varane's style"
         ]
         
         # Filter suggestions based on partial query

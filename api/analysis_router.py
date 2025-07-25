@@ -56,6 +56,7 @@ class AnalysisRouter:
                 QueryType.YOUNG_PROSPECTS: self._handle_young_prospects,
                 QueryType.TOP_PERFORMERS: self._handle_top_performers,
                 QueryType.CUSTOM_FILTER: self._handle_custom_filter,
+                QueryType.TACTICAL_ANALYSIS: self._handle_tactical_analysis,
                 QueryType.UNKNOWN: self._handle_unknown
             }
             
@@ -86,7 +87,7 @@ class AnalysisRouter:
         """Handle player search requests."""
         try:
             results = self.analyzer.search_players(
-                name_query=request.player_name,
+                name_pattern=request.player_name,
                 min_minutes=request.min_minutes,
                 position=request.position
             )
@@ -132,7 +133,7 @@ class AnalysisRouter:
             found_players = []
             for player_name in request.player_names:
                 player_results = self.analyzer.search_players(
-                    name_query=player_name,
+                    name_pattern=player_name,
                     min_minutes=request.min_minutes
                 )
                 if not player_results.empty:
@@ -418,6 +419,130 @@ class AnalysisRouter:
         except Exception as e:
             return self._create_error_response(request, f"Custom filter analysis failed: {e}")
     
+    def _handle_tactical_analysis(self, request: TacticalAnalysisRequest) -> AnalysisResponse:
+        """Handle GPT-4 enhanced tactical analysis requests."""
+        try:
+            # Start with all qualified players
+            candidates = self.analyzer.standard_data[
+                self.analyzer.standard_data['minutes'] >= request.min_minutes
+            ].copy()
+            
+            # Apply basic filters first
+            if request.position:
+                position_mask = candidates['position'].str.contains(
+                    request.position, case=False, na=False
+                )
+                candidates = candidates[position_mask]
+            
+            if request.league:
+                league_mask = [idx[0] == request.league for idx in candidates.index]
+                candidates = candidates[league_mask]
+            
+            # Apply age filters
+            if request.age_min:
+                candidates = candidates[candidates['age'] >= request.age_min]
+            if request.age_max:
+                candidates = candidates[candidates['age'] <= request.age_max]
+            
+            # If target_player is specified, exclude them from results
+            if request.target_player:
+                target_mask = ~candidates.index.get_level_values(3).str.contains(
+                    request.target_player, case=False, na=False
+                )
+                candidates = candidates[target_mask]
+            
+            if candidates.empty:
+                filters_desc = []
+                if request.position:
+                    filters_desc.append(f"position: {request.position}")
+                if request.league:
+                    filters_desc.append(f"league: {request.league}")
+                if request.age_min or request.age_max:
+                    age_range = f"age: {request.age_min or 'any'}-{request.age_max or 'any'}"
+                    filters_desc.append(age_range)
+                
+                return ErrorResponse(
+                    success=False,
+                    original_request=request,
+                    error_message=f"No tactical candidates found with criteria: {', '.join(filters_desc)}",
+                    suggestions=[
+                        "Try expanding age range or removing position/league filters",
+                        f"Reduce minimum minutes from {request.min_minutes}",
+                        "Check if the target player name is spelled correctly"
+                    ]
+                )
+            
+            # Score candidates based on priority stats if provided
+            if request.priority_stats:
+                # Calculate composite score from priority stats
+                scores = []
+                for idx, player in candidates.iterrows():
+                    score = 0
+                    valid_stats = 0
+                    
+                    for stat in request.priority_stats:
+                        if stat in player and pd.notna(player[stat]):
+                            # Normalize stat values (simple min-max scaling)
+                            stat_values = candidates[stat].dropna()
+                            if len(stat_values) > 1:
+                                min_val = stat_values.min()
+                                max_val = stat_values.max()
+                                if max_val > min_val:
+                                    normalized = (player[stat] - min_val) / (max_val - min_val)
+                                    score += normalized
+                                    valid_stats += 1
+                    
+                    # Average score across valid stats
+                    final_score = score / max(valid_stats, 1)
+                    scores.append(final_score)
+                
+                # Add scores to candidates and sort
+                candidates = candidates.copy()
+                candidates['tactical_score'] = scores
+                candidates = candidates.sort_values('tactical_score', ascending=False)
+            
+            # Limit results
+            if len(candidates) > request.limit:
+                candidates = candidates.head(request.limit)
+            
+            # Reset index for easier display
+            candidates_display = candidates.reset_index()
+            
+            # Generate tactical insights
+            tactical_insights = self._generate_tactical_insights(
+                candidates, request.target_player, request.tactical_context, request.reasoning
+            )
+            
+            # Create specialized tactical response
+            tactical_data = {
+                'target_player': request.target_player,
+                'tactical_context': request.tactical_context,
+                'reasoning': request.reasoning,
+                'priority_stats': request.priority_stats,
+                'candidates': candidates_display,
+                'insights': tactical_insights
+            }
+            
+            summary = f"Found {len(candidates)} tactical candidates"
+            if request.target_player:
+                summary += f" for {request.target_player}"
+            if request.position:
+                summary += f" ({request.position})"
+            if request.league:
+                summary += f" in {request.league}"
+            
+            # Return as PlayerListResponse with tactical data in summary
+            return PlayerListResponse(
+                success=True,
+                original_request=request,
+                players=candidates_display,
+                total_found=len(candidates),
+                summary=f"{summary}\n\nTactical Analysis:\n{request.reasoning}"
+            )
+            
+        except Exception as e:
+            return self._create_error_response(request, f"Tactical analysis failed: {e}")
+    
     def _handle_unknown(self, request: UnknownRequest) -> AnalysisResponse:
         """Handle unknown query requests."""
         return ErrorResponse(
@@ -498,6 +623,49 @@ class AnalysisRouter:
         
         return recommendations
     
+    def _generate_tactical_insights(self, candidates: pd.DataFrame, target_player: Optional[str], 
+                                   tactical_context: str, reasoning: str) -> List[str]:
+        """Generate tactical insights for candidate players."""
+        insights = []
+        
+        if not candidates.empty:
+            # Age distribution insight
+            if 'age' in candidates.columns:
+                avg_age = candidates['age'].mean()
+                insights.append(f"📊 Average age of candidates: {avg_age:.1f} years")
+                
+                young_candidates = len(candidates[candidates['age'] <= 23])
+                if young_candidates > 0:
+                    insights.append(f"🌟 {young_candidates} young prospects (23 and under) identified")
+            
+            # League distribution insight
+            if len(candidates) > 1:
+                league_info = candidates.index.get_level_values(0).value_counts()
+                top_league = league_info.index[0]
+                count = league_info.iloc[0]
+                insights.append(f"🏆 {top_league} has the most candidates ({count})")
+            
+            # Tactical scoring insight
+            if 'tactical_score' in candidates.columns:
+                top_candidate = candidates.iloc[0]
+                candidate_name = top_candidate.name[3] if hasattr(top_candidate.name, '__getitem__') else "Top candidate"
+                insights.append(f"⭐ Highest tactical fit: {candidate_name}")
+            
+            # Playing time insight
+            if 'minutes' in candidates.columns:
+                avg_minutes = candidates['minutes'].mean()
+                insights.append(f"⏱️ Average playing time: {int(avg_minutes)} minutes")
+                
+                regular_starters = len(candidates[candidates['minutes'] >= 2000])
+                if regular_starters > 0:
+                    insights.append(f"🎯 {regular_starters} candidates are regular starters (2000+ minutes)")
+        
+        # Add GPT-4 reasoning if provided
+        if reasoning:
+            insights.append(f"🧠 AI Analysis: {reasoning[:150]}{'...' if len(reasoning) > 150 else ''}")
+        
+        return insights
+    
     def _get_cache_key(self, request: AnalysisRequest) -> str:
         """Generate cache key for request."""
         # Simple cache key based on request type and key parameters
@@ -507,12 +675,19 @@ class AnalysisRouter:
             key_parts.append(request.player_name)
         if hasattr(request, 'player_names'):
             key_parts.extend(sorted(request.player_names))
+        if hasattr(request, 'target_player') and request.target_player:
+            key_parts.append(f"target:{request.target_player}")
         if hasattr(request, 'position') and request.position:
             key_parts.append(request.position)
         if hasattr(request, 'league') and request.league:
             key_parts.append(request.league)
         if hasattr(request, 'stat'):
             key_parts.append(request.stat)
+        if hasattr(request, 'tactical_context') and request.tactical_context:
+            # Use a hash of tactical context to keep cache key manageable
+            import hashlib
+            context_hash = hashlib.md5(request.tactical_context.encode()).hexdigest()[:8]
+            key_parts.append(f"context:{context_hash}")
         
         return "|".join(key_parts)
     

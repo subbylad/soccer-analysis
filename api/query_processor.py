@@ -1,16 +1,24 @@
 """
 Query Processor - Natural Language to Structured Requests
 
-Implements a 3-tier approach:
+Implements a 4-tier approach:
 1. Pattern matching for common queries
 2. Dynamic combination for flexible queries  
-3. LLM fallback for novel requests
+3. GPT-4 enhanced parsing for complex tactical queries
+4. LLM fallback for novel requests
 """
 
 import re
+import os
+import json
 from typing import List, Dict, Optional, Union
 import logging
 from dataclasses import dataclass
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 from .types import *
 
@@ -370,17 +378,178 @@ class EntityExtractor:
         return list(set(matches))  # Remove duplicates
 
 
+class GPTEnhancedQueryProcessor:
+    """Tier 3: GPT-4 enhanced parsing for complex tactical queries."""
+    
+    def __init__(self, api_key: Optional[str] = None):
+        """Initialize with OpenAI API key."""
+        self.client = None
+        
+        if OpenAI is None:
+            logger.warning("OpenAI not installed. GPT-4 parsing disabled.")
+            return
+            
+        # Try to get API key from parameter, environment, or disable
+        api_key = api_key or os.getenv('OPENAI_API_KEY')
+        if api_key:
+            try:
+                self.client = OpenAI(api_key=api_key)
+                logger.info("GPT-4 enhanced query processing enabled")
+            except Exception as e:
+                logger.error(f"Failed to initialize OpenAI client: {e}")
+        else:
+            logger.info("No OpenAI API key provided. GPT-4 parsing disabled.")
+    
+    def can_enhance(self, query: str) -> bool:
+        """Check if this query would benefit from GPT-4 enhancement."""
+        if not self.client:
+            return False
+            
+        # Keywords that indicate complex tactical analysis
+        tactical_keywords = [
+            'alongside', 'partner', 'complement', 'fit', 'system', 'style',
+            'replace', 'similar to', 'like', 'alternative', 'backup',
+            'formation', 'tactical', 'playing style', 'characteristics',
+            'profile', 'attributes', 'skillset', 'ability'
+        ]
+        
+        # Complex query patterns that need reasoning
+        complex_patterns = [
+            r'who (?:can|could|would) .+alongside',
+            r'(?:find|show|get) .+ who (?:can|could) .+ with',
+            r'(?:alternative|replacement|backup) (?:for|to)',
+            r'similar (?:to|like|as)',
+            r'complement .+ in .+ system',
+            r'fit .+ playing style'
+        ]
+        
+        query_lower = query.lower()
+        
+        # Check for tactical keywords
+        if any(keyword in query_lower for keyword in tactical_keywords):
+            return True
+            
+        # Check for complex patterns
+        if any(re.search(pattern, query_lower) for pattern in complex_patterns):
+            return True
+            
+        return False
+    
+    def enhance_query(self, query: str) -> Optional[AnalysisRequest]:
+        """Use GPT-4 to parse complex tactical queries."""
+        if not self.client or not self.can_enhance(query):
+            return None
+            
+        try:
+            system_prompt = """You are a soccer analytics expert. Parse natural language queries into structured analysis requests.
+
+Focus on extracting:
+1. Player names mentioned
+2. Position requirements (midfielder, defender, forward, etc.)
+3. League preferences (Premier League, La Liga, Serie A, Bundesliga, Ligue 1)
+4. Age constraints (young prospects, experienced, etc.)
+5. Tactical requirements (playing style, formation fit, partner compatibility)
+6. Statistical priorities (goals, assists, passing, defensive actions)
+
+Return a JSON object with these fields:
+{
+    "query_type": "player_search|comparison|young_prospects|tactical_analysis",
+    "players_mentioned": ["player1", "player2"],
+    "position": "Midfielder|Defender|Forward|Goalkeeper",
+    "league": "ENG-Premier League|ESP-La Liga|ITA-Serie A|GER-Bundesliga|FRA-Ligue 1",
+    "age_constraints": {"min": 18, "max": 35},
+    "tactical_context": "Description of tactical requirements",
+    "priority_stats": ["goals", "assists", "progressive_passes"],
+    "reasoning": "Explanation of what the user is looking for"
+}
+
+If the query asks for players to complement/partner with someone, use "tactical_analysis" type."""
+
+            response = self.client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Parse this soccer query: {query}"}
+                ],
+                temperature=0.1,
+                max_tokens=500
+            )
+            
+            # Parse the GPT-4 response
+            content = response.choices[0].message.content.strip()
+            
+            # Extract JSON from response
+            if content.startswith('```json'):
+                content = content.replace('```json', '').replace('```', '').strip()
+            
+            try:
+                parsed = json.loads(content)
+                return self._create_request_from_gpt_response(query, parsed)
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse GPT-4 JSON response: {content}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"GPT-4 query enhancement failed: {e}")
+            return None
+    
+    def _create_request_from_gpt_response(self, original_query: str, parsed: Dict) -> AnalysisRequest:
+        """Create appropriate request object from GPT-4 parsed data."""
+        query_type = parsed.get('query_type', 'player_search')
+        
+        # Create base request data
+        base_data = {
+            'original_query': original_query,
+            'confidence': 0.8  # High confidence for GPT-4 parsing
+        }
+        
+        if query_type == 'tactical_analysis':
+            # Create a custom tactical analysis request
+            return TacticalAnalysisRequest(
+                **base_data,
+                target_player=parsed.get('players_mentioned', [None])[0],
+                position=parsed.get('position'),
+                league=parsed.get('league'),
+                tactical_context=parsed.get('tactical_context', ''),
+                priority_stats=parsed.get('priority_stats', []),
+                reasoning=parsed.get('reasoning', ''),
+                age_min=parsed.get('age_constraints', {}).get('min'),
+                age_max=parsed.get('age_constraints', {}).get('max')
+            )
+        elif query_type == 'comparison':
+            return PlayerComparisonRequest(
+                **base_data,
+                player_names=parsed.get('players_mentioned', [])
+            )
+        elif query_type == 'young_prospects':
+            return YoungProspectsRequest(
+                **base_data,
+                position=parsed.get('position'),
+                league=parsed.get('league'),
+                max_age=parsed.get('age_constraints', {}).get('max', 23)
+            )
+        else:  # Default to player_search
+            return PlayerSearchRequest(
+                **base_data,
+                player_name=parsed.get('players_mentioned', [None])[0] or '',
+                position=parsed.get('position'),
+                league=parsed.get('league')
+            )
+
+
 class QueryProcessor:
     """Main query processor coordinating all tiers."""
     
-    def __init__(self):
+    def __init__(self, openai_api_key: Optional[str] = None):
         self.pattern_matcher = PatternMatcher()
         self.dynamic_builder = DynamicQueryBuilder()
+        self.gpt_processor = GPTEnhancedQueryProcessor(api_key=openai_api_key)
         self.fallback_suggestions = [
             "Try: 'Compare [player1] vs [player2]'",
             "Try: 'Find young midfielders'",
             "Try: 'Top scorers in Premier League'",
-            "Try: 'Show me defenders under 25'"
+            "Try: 'Show me defenders under 25'",
+            "Try: 'Who can play alongside [player name]?'"
         ]
     
     def process_query(self, query: str, context: Optional[QueryContext] = None) -> AnalysisRequest:
@@ -397,7 +566,12 @@ class QueryProcessor:
             logger.info(f"Built dynamic request: {request.query_type}")
             return request
         
-        # Tier 3: Unknown query fallback
+        # Tier 3: GPT-4 enhanced parsing
+        if request := self.gpt_processor.enhance_query(query):
+            logger.info(f"GPT-4 enhanced request: {request.query_type}")
+            return request
+        
+        # Tier 4: Unknown query fallback
         logger.info("Could not parse query, returning unknown request")
         return UnknownRequest(
             original_query=query,

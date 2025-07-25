@@ -20,6 +20,7 @@ class QueryType(Enum):
     TEAM_ANALYSIS = "team_analysis"
     SIMILAR_PLAYERS = "similar_players"
     CUSTOM_FILTER = "custom_filter"
+    TACTICAL_ANALYSIS = "tactical_analysis"  # GPT-4 enhanced tactical analysis
     UNKNOWN = "unknown"
 
 class ResponseType(Enum):
@@ -97,6 +98,23 @@ class CustomFilterRequest(AnalysisRequest):
     
     def __post_init__(self):
         self.query_type = QueryType.CUSTOM_FILTER
+
+@dataclass
+class TacticalAnalysisRequest(AnalysisRequest):
+    """Request for GPT-4 enhanced tactical analysis (e.g., finding tactical partners)."""
+    target_player: Optional[str] = None  # Player to find partners/alternatives for
+    position: Optional[str] = None
+    league: Optional[str] = None
+    age_min: Optional[int] = None
+    age_max: Optional[int] = None
+    min_minutes: int = 500
+    tactical_context: str = ""  # GPT-4 generated context
+    priority_stats: List[str] = field(default_factory=list)  # Key stats for analysis
+    reasoning: str = ""  # GPT-4 reasoning for the request
+    limit: int = 10
+    
+    def __post_init__(self):
+        self.query_type = QueryType.TACTICAL_ANALYSIS
 
 @dataclass
 class UnknownRequest(AnalysisRequest):
