@@ -17,7 +17,6 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from analysis.clean_player_analyzer import CleanPlayerAnalyzer
-from analysis.young_dm_scouting import YoungDMScout
 from .types import *
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,6 @@ class AnalysisRouter:
         """Initialize with analysis components."""
         try:
             self.analyzer = CleanPlayerAnalyzer(data_dir=data_dir)
-            self.young_scout = YoungDMScout(data_dir=data_dir)
             self.cache = {}  # Simple in-memory cache
             logger.info("Analysis router initialized successfully")
         except Exception as e:
@@ -218,30 +216,40 @@ class AnalysisRouter:
     def _handle_young_prospects(self, request: YoungProspectsRequest) -> AnalysisResponse:
         """Handle young prospects requests."""
         try:
-            # Use the specialized young DM scout for midfielder analysis
-            if request.position and 'midfielder' in request.position.lower():
-                prospects_df = self.young_scout.scout_young_defensive_midfielders(
-                    max_age=request.max_age,
-                    min_minutes=request.min_minutes
+            # Use general young prospects analysis from CleanPlayerAnalyzer
+            # Get all young players first
+            all_young = self.analyzer.standard_data[
+                (self.analyzer.standard_data['age'] <= request.max_age) &
+                (self.analyzer.standard_data['minutes'] >= request.min_minutes)
+            ].copy()
+            
+            # Apply position filter if specified
+            if request.position and not all_young.empty:
+                position_mask = all_young['position'].str.contains(
+                    request.position, case=False, na=False
                 )
+                all_young = all_young[position_mask]
+            
+            # Apply league filter if specified  
+            if request.league and not all_young.empty:
+                league_mask = [idx[0] == request.league for idx in all_young.index]
+                all_young = all_young[league_mask]
+            
+            # Calculate potential score using available stats
+            if not all_young.empty:
+                # Simple potential calculation based on goals, assists, and age
+                goals_per_90 = all_young.get('goals_per_90', 0).fillna(0)
+                assists_per_90 = all_young.get('assists_per_90', 0).fillna(0)
+                age_factor = (25 - all_young['age']) * 2  # Younger players get higher score
+                
+                potential_score = (goals_per_90 * 10) + (assists_per_90 * 8) + age_factor
+                all_young = all_young.copy()
+                all_young['potential_score'] = potential_score
+                
+                # Sort by potential score
+                prospects_df = all_young.sort_values('potential_score', ascending=False)
             else:
-                # Use general young prospects analysis
-                prospects_df = self.analyzer.get_young_prospects(
-                    max_age=request.max_age,
-                    min_minutes=request.min_minutes
-                )
-                
-                # Apply position filter if specified
-                if request.position and not prospects_df.empty:
-                    position_mask = prospects_df['position'].str.contains(
-                        request.position, case=False, na=False
-                    )
-                    prospects_df = prospects_df[position_mask]
-                
-                # Apply league filter if specified  
-                if request.league and not prospects_df.empty:
-                    league_mask = prospects_df['league'] == request.league
-                    prospects_df = prospects_df[league_mask]
+                prospects_df = all_young
             
             if prospects_df.empty:
                 filters_text = f"under {request.max_age}"
