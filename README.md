@@ -1,28 +1,34 @@
-# Soccer Data Analysis Toolkit 🏈
+# Soccer Data Analysis Toolkit ⚽
 
-A comprehensive Python toolkit for soccer data analysis, player comparison, and discovery using data from the Big 5 European leagues.
+A comprehensive Python toolkit for soccer data analysis, player comparison, and scouting using data from the Big 5 European leagues.
 
 ## Features
 
-✅ **Data Collection**: Automated download of player and team statistics from FBref  
+✅ **Data Collection**: Automated download and cleaning of player statistics from FBref  
 ✅ **Player Search**: Find players by name with comprehensive stats  
 ✅ **Player Comparison**: Compare multiple players across key metrics  
-✅ **Similar Player Discovery**: Find players with similar playing styles  
-✅ **Top Performers**: Identify league leaders in goals, assists, and other metrics  
-✅ **Dashboard**: Ready-to-use analysis dashboard  
+✅ **Scouting Tools**: Young player discovery and potential analysis  
+✅ **Position Analysis**: Deep dive into defensive midfielder attributes  
+✅ **Clean Data Pipeline**: Properly processed and standardized datasets  
 
 ## Project Structure
 
 ```
 socceranalysis/
-├── data/                   # Cached soccer data (CSV files)
-├── scripts/               # Data loading utilities
-│   └── data_loader.py     # Main data downloader
-├── analysis/              # Analysis modules
-│   └── player_analyzer.py # Core player analysis class
-├── dashboards/            # Dashboard and demo scripts
+├── data/
+│   ├── raw/               # Original downloaded data
+│   └── clean/             # Processed, analysis-ready data
+├── scripts/               # Data pipeline utilities
+│   ├── data_loader.py     # Downloads fresh data from FBref
+│   └── data_cleaner.py    # Cleans and standardizes data
+├── analysis/              # Core analysis modules
+│   ├── clean_player_analyzer.py    # Main analysis class
+│   ├── young_dm_scouting.py        # Young player scouting
+│   ├── dm_attributes_analysis.py   # Defensive midfielder analysis
+│   └── check_ugochukwu_agoume.py   # Specific player analysis
+├── dashboards/
 │   └── quick_demo.py      # Comprehensive demo
-└── notebooks/             # Jupyter notebooks (for future use)
+└── notebooks/             # Reserved for Jupyter analysis
 ```
 
 ## Quick Start
@@ -42,9 +48,9 @@ This will show:
 
 #### Search for a Player
 ```python
-from analysis.player_analyzer import PlayerAnalyzer
+from analysis.clean_player_analyzer import CleanPlayerAnalyzer
 
-analyzer = PlayerAnalyzer()
+analyzer = CleanPlayerAnalyzer()
 
 # Search for players
 haaland_stats = analyzer.search_players("Haaland")
@@ -58,11 +64,16 @@ comparison = analyzer.compare_players(["Haaland", "Mbappé", "Kane"])
 print(comparison)
 ```
 
-#### Find Similar Players
+#### Scout Young Defensive Midfielders
 ```python
-# Find players similar to Haaland
-similar = analyzer.find_similar_players("Haaland", position="FW")
-print(similar)
+# Run young DM scouting analysis
+python3 analysis/young_dm_scouting.py
+```
+
+#### Analyze Defensive Midfielder Attributes
+```python
+# Deep dive into what makes DMs effective
+python3 analysis/dm_attributes_analysis.py
 ```
 
 ## Data Sources
@@ -101,13 +112,31 @@ Top 10 Goal Scorers (500+ minutes):
  5. Mateo Retegui        (Atalanta       ) - 25 goals (0.94/90min)
 ```
 
-## Next Steps for Development
+## Advanced Features
 
-1. **Interactive Dashboards**: Create web-based dashboards with Plotly/Streamlit
-2. **Advanced Analytics**: Player performance trends, injury prediction
-3. **Scouting Reports**: Automated player scouting and recommendation system
-4. **Multi-Season Analysis**: Historical data comparison and player development tracking
-5. **Market Value Integration**: Combine with transfer market data
+### 🔍 **Scouting Analysis**
+- Young player discovery (under 23)
+- Potential scoring algorithm
+- Position-specific analysis
+- League-by-league breakdown
+
+### 📊 **Defensive Midfielder Deep Dive**
+- Progressive passing vs carrying analysis
+- Comparison of DM vs attacking midfielders
+- Individual player rankings and percentiles
+- League style differences
+
+### 🧹 **Clean Data Pipeline**
+- Automated data cleaning and standardization
+- Proper column naming and data types
+- Position normalization
+- Raw data preservation
+
+## Recent Analysis Examples
+
+- **Baleba vs Ligue 1**: Found Florian Sotoca (Lens) as closest statistical match
+- **Young DM Prospects**: Identified Pedri, Diego Moreira, and Warren Zaïre-Emery as top prospects
+- **DM Attributes**: Discovered DMs excel in durability and progressive passing, not carrying
 
 ## Dependencies
 
