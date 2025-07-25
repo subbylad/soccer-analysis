@@ -505,16 +505,21 @@ If the query asks for players to complement/partner with someone, use "tactical_
         
         if query_type == 'tactical_analysis':
             # Create a custom tactical analysis request
+            players_mentioned = parsed.get('players_mentioned', [])
+            target_player = players_mentioned[0] if players_mentioned else None
+            
+            age_constraints = parsed.get('age_constraints', {})
+            
             return TacticalAnalysisRequest(
                 **base_data,
-                target_player=parsed.get('players_mentioned', [None])[0],
+                target_player=target_player,
                 position=parsed.get('position'),
                 league=parsed.get('league'),
                 tactical_context=parsed.get('tactical_context', ''),
                 priority_stats=parsed.get('priority_stats', []),
                 reasoning=parsed.get('reasoning', ''),
-                age_min=parsed.get('age_constraints', {}).get('min'),
-                age_max=parsed.get('age_constraints', {}).get('max')
+                age_min=age_constraints.get('min') if age_constraints else None,
+                age_max=age_constraints.get('max') if age_constraints else None
             )
         elif query_type == 'comparison':
             return PlayerComparisonRequest(
@@ -529,9 +534,12 @@ If the query asks for players to complement/partner with someone, use "tactical_
                 max_age=parsed.get('age_constraints', {}).get('max', 23)
             )
         else:  # Default to player_search
+            players_mentioned = parsed.get('players_mentioned', [])
+            player_name = players_mentioned[0] if players_mentioned else ''
+            
             return PlayerSearchRequest(
                 **base_data,
-                player_name=parsed.get('players_mentioned', [None])[0] or '',
+                player_name=player_name,
                 position=parsed.get('position'),
                 league=parsed.get('league')
             )
