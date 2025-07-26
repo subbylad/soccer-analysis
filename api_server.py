@@ -16,6 +16,13 @@ import traceback
 from typing import Dict, Any, Optional
 import json
 
+# Set up logging first to avoid undefined logger errors
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # Import our existing API
 from api.main_api import SoccerAnalyticsAPI, APIConfig
 from api.types import QueryContext
@@ -28,13 +35,6 @@ try:
 except ImportError:
     PRODUCTION_MIDDLEWARE_AVAILABLE = False
     logger.warning("Production middleware not available - running without enhanced security")
-
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -320,13 +320,12 @@ def get_config():
             return create_error_response("API not initialized", 503)
         
         config_info = {
-            "data_dir": soccer_api.config.data_dir,
             "cache_enabled": soccer_api.config.cache_enabled,
             "max_cache_size": soccer_api.config.max_cache_size,
-            "log_level": soccer_api.config.log_level,
             "default_min_minutes": soccer_api.config.default_min_minutes,
-            "openai_enabled": bool(soccer_api.config.openai_api_key),
-            "query_history_length": len(soccer_api.query_history)
+            "ai_features_enabled": bool(soccer_api.config.openai_api_key),  # Don't expose API key existence
+            "query_history_length": len(soccer_api.query_history),
+            "version": "1.0.0"  # Add version info instead of sensitive paths
         }
         
         return create_success_response(config_info, "Configuration retrieved")
@@ -535,6 +534,27 @@ def create_app(debug=False, enable_production_features=True):
         raise
     
     return app
+
+# Initialize app for production (Railway/Gunicorn)
+try:
+    # Detect if we're running in production (Railway sets RAILWAY_ENVIRONMENT)
+    is_production = os.getenv('RAILWAY_ENVIRONMENT') is not None or os.getenv('DYNO') is not None
+    
+    if is_production:
+        logger.info("🚀 Initializing for production deployment...")
+        app = create_app(debug=False, enable_production_features=True)
+        logger.info("✅ Production app initialized successfully")
+    else:
+        # In development, don't auto-initialize to avoid conflicts
+        pass
+except Exception as e:
+    logger.error(f"❌ Failed to initialize production app: {e}")
+    # Create a minimal app that shows the error
+    app = Flask(__name__)
+    
+    @app.route('/')
+    def error():
+        return f"Initialization error: {str(e)}", 500
 
 if __name__ == '__main__':
     import argparse
