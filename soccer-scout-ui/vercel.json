@@ -1,9 +1,22 @@
 {
   "version": 2,
   "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "outputDirectory": ".next",
   "functions": {
     "src/app/api/**/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_API_URL": "https://your-railway-backend.railway.app"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
     }
   }
 }

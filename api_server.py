@@ -495,6 +495,15 @@ def frontend_query_stream():
 
 # === ROOT ENDPOINT ===
 
+@app.route('/health', methods=['GET'])
+def simple_health():
+    """Simple health check for Railway."""
+    return jsonify({
+        "status": "healthy",
+        "service": "soccer-scout-api",
+        "timestamp": time.time()
+    }), 200
+
 @app.route('/', methods=['GET'])
 def root():
     """API information endpoint."""
@@ -567,8 +576,10 @@ try:
         app = create_app(debug=False, enable_production_features=True)
         logger.info("✅ Flask application initialized successfully")
     else:
-        logger.info("🔧 Development environment")
-        # In development, app will be created in __main__ section
+        logger.info("🔧 Development environment - creating app for gunicorn")
+        # Create app for gunicorn even in development
+        app = create_app(debug=True, enable_production_features=False)
+        logger.info("✅ Development Flask application initialized successfully")
         
 except Exception as e:
     logger.error(f"❌ Failed to initialize Flask app: {e}")

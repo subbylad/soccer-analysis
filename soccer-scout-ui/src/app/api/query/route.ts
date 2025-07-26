@@ -20,10 +20,11 @@ export async function OPTIONS() {
 
 /**
  * Next.js API Route for handling soccer analytics queries
- * This replaces the Flask backend for Vercel deployment
+ * This proxies requests to the Railway Flask backend
  */
 
-// Mock data for demonstration - replace with actual backend integration
+// Backend URL configuration
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:5001';
 const MOCK_PLAYERS = [
   {
     name: "Erling Haaland",
@@ -225,20 +226,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate response based on query
-    const response = generateMockResponse(query);
-    
-    // Add request metadata
-    const enrichedResponse = {
-      ...response,
-      request_id: `req_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      processing_time: Math.random() * 1000 + 500, // Mock processing time
-    };
+    // Try to connect to Railway backend first
+    try {
+      console.log(`Attempting to connect to backend: ${BACKEND_URL}`);
+      
+      const backendResponse = await fetch(`${BACKEND_URL}/api/query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ query: query.trim() }),
+        signal: AbortSignal.timeout(25000), // 25 second timeout
+      });
 
-    return NextResponse.json(enrichedResponse, {
-      headers: corsHeaders(),
-    });
+      if (backendResponse.ok) {
+        const data = await backendResponse.json();
+        console.log('Backend response received successfully');
+        
+        return NextResponse.json(data, {
+          headers: corsHeaders(),
+        });
+      } else {
+        console.log(`Backend responded with status: ${backendResponse.status}`);
+        throw new Error(`Backend error: ${backendResponse.status}`);
+      }
+      
+    } catch (backendError) {
+      console.log('Backend connection failed, falling back to mock data:', backendError);
+      
+      // Fallback to mock response if backend is unavailable
+      const mockResponse = generateMockResponse(query);
+      
+      // Add metadata indicating this is a fallback response
+      const enrichedResponse = {
+        ...mockResponse,
+        request_id: `req_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        processing_time: Math.random() * 1000 + 500,
+        fallback_mode: true,
+        backend_status: 'unavailable'
+      };
+
+      return NextResponse.json(enrichedResponse, {
+        headers: corsHeaders(),
+      });
+    }
 
   } catch (error) {
     console.error('API route error:', error);

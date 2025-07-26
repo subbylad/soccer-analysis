@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false, // Remove X-Powered-By header for security
   compress: true, // Enable gzip compression
   
+  // Ensure standalone output for Vercel
+  output: process.env.BUILD_STANDALONE ? 'standalone' : undefined,
+  
   // Build optimization
   eslint: {
     ignoreDuringBuilds: process.env.NODE_ENV === 'production', // Only ignore in production
