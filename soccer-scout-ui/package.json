@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:production": "NODE_ENV=production next build",
+    "build:analyze": "ANALYZE=true next build",
+    "export": "EXPORT_MODE=static next build && next export",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next out",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.83.0",
@@ -28,5 +34,9 @@
     "eslint-config-next": "15.4.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

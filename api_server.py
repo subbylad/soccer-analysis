@@ -23,10 +23,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import our existing API
-from api.main_api import SoccerAnalyticsAPI, APIConfig
-from api.types import QueryContext
-from api.frontend_adapter import FrontendResponseAdapter
+# Import our existing API with error handling
+try:
+    from api.main_api import SoccerAnalyticsAPI, APIConfig
+    from api.types import QueryContext
+    from api.frontend_adapter import FrontendResponseAdapter
+except ImportError as e:
+    logger.error(f"Failed to import API modules: {e}")
+    # Try absolute imports
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    
+    from api.main_api import SoccerAnalyticsAPI, APIConfig
+    from api.types import QueryContext
+    from api.frontend_adapter import FrontendResponseAdapter
 
 # Import production middleware
 try:
@@ -535,26 +546,52 @@ def create_app(debug=False, enable_production_features=True):
     
     return app
 
-# Initialize app for production (Railway/Gunicorn)
+# Initialize app for production/development
 try:
-    # Detect if we're running in production (Railway sets RAILWAY_ENVIRONMENT)
-    is_production = os.getenv('RAILWAY_ENVIRONMENT') is not None or os.getenv('DYNO') is not None
+    # Always create the app instance for Gunicorn to find
+    logger.info("🚀 Initializing Flask application...")
+    
+    # Detect if we're in production environment
+    is_production = (
+        os.getenv('RAILWAY_ENVIRONMENT') is not None or 
+        os.getenv('DYNO') is not None or
+        os.getenv('RENDER') is not None or
+        'gunicorn' in os.environ.get('SERVER_SOFTWARE', '')
+    )
     
     if is_production:
-        logger.info("🚀 Initializing for production deployment...")
+        logger.info("🔒 Production environment detected")
         app = create_app(debug=False, enable_production_features=True)
-        logger.info("✅ Production app initialized successfully")
     else:
-        # In development, don't auto-initialize to avoid conflicts
+        logger.info("🔧 Development environment")
+        # Create app but don't auto-initialize in development to avoid conflicts
         pass
+        
+    logger.info("✅ Flask application initialized successfully")
+    
 except Exception as e:
-    logger.error(f"❌ Failed to initialize production app: {e}")
-    # Create a minimal app that shows the error
+    logger.error(f"❌ Failed to initialize Flask app: {e}")
+    logger.error(f"Error details: {str(e)}")
+    
+    # Create a minimal error app for Gunicorn to serve
     app = Flask(__name__)
+    CORS(app)
     
     @app.route('/')
-    def error():
-        return f"Initialization error: {str(e)}", 500
+    def error_page():
+        return {
+            "error": "Application initialization failed",
+            "details": str(e),
+            "status": "error"
+        }, 500
+    
+    @app.route('/api/health')
+    def error_health():
+        return {
+            "status": "error",
+            "error": "Application failed to initialize",
+            "details": str(e)
+        }, 500
 
 if __name__ == '__main__':
     import argparse

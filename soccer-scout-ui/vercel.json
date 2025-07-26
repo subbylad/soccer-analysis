@@ -1,20 +1,35 @@
 {
+  "version": 2,
+  "name": "soccer-scout-ui",
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:production",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "env": {
+    "NODE_ENV": "production",
     "NEXT_PUBLIC_SITE_URL": "https://soccer-scout-ai.vercel.app"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
   },
   "functions": {
     "src/app/api/*/route.ts": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs18.x",
+      "maxDuration": 30,
+      "memory": 1024
     }
   },
+  "regions": ["iad1"],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
     }
   ],
   "headers": [
@@ -23,7 +38,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "*"
+          "value": "https://your-backend.railway.app"
         },
         {
           "key": "Access-Control-Allow-Methods", 
@@ -32,6 +47,10 @@
         {
           "key": "Access-Control-Allow-Headers",
           "value": "Content-Type, Authorization"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=0"
         }
       ]
     },
@@ -49,8 +68,36 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), microphone=(), camera=()"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     }
-  ]
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
 }
