@@ -1,22 +1,9 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": ".next",
   "functions": {
     "src/app/api/**/route.ts": {
-      "maxDuration": 30,
-      "runtime": "nodejs18.x"
-    }
-  },
-  "env": {
-    "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://soccer-scout-api-production.up.railway.app"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
+      "maxDuration": 30
     }
   }
 }
