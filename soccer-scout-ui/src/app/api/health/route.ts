@@ -1,5 +1,22 @@
 import { NextResponse } from 'next/server';
 
+// Add CORS headers for Vercel deployment
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(),
+  });
+}
+
 /**
  * Health check endpoint for Soccer Scout AI
  */
@@ -21,6 +38,7 @@ export async function GET() {
     { 
       status: 200,
       headers: {
+        ...corsHeaders(),
         'Cache-Control': 'no-cache',
       }
     }

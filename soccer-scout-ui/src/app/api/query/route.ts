@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { QueryResponse } from '@/types';
 
+// Add CORS headers for Vercel deployment
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders(),
+  });
+}
+
 /**
  * Next.js API Route for handling soccer analytics queries
  * This replaces the Flask backend for Vercel deployment
@@ -187,7 +204,10 @@ export async function POST(request: NextRequest) {
           query_type: 'error',
           error: 'Missing or invalid query parameter'
         },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders(),
+        }
       );
     }
 
@@ -198,7 +218,10 @@ export async function POST(request: NextRequest) {
           query_type: 'error', 
           error: 'Empty query'
         },
-        { status: 400 }
+        { 
+          status: 400,
+          headers: corsHeaders(),
+        }
       );
     }
 
@@ -213,7 +236,9 @@ export async function POST(request: NextRequest) {
       processing_time: Math.random() * 1000 + 500, // Mock processing time
     };
 
-    return NextResponse.json(enrichedResponse);
+    return NextResponse.json(enrichedResponse, {
+      headers: corsHeaders(),
+    });
 
   } catch (error) {
     console.error('API route error:', error);
@@ -224,7 +249,10 @@ export async function POST(request: NextRequest) {
         query_type: 'error',
         error: 'Internal server error'
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders(),
+      }
     );
   }
 }
@@ -237,6 +265,9 @@ export async function GET() {
       methods: ['POST'],
       description: 'Send POST requests with a "query" parameter to analyze soccer data'
     },
-    { status: 200 }
+    { 
+      status: 200,
+      headers: corsHeaders(),
+    }
   );
 }
