@@ -12,7 +12,7 @@
   },
   "env": {
     "NODE_ENV": "production",
-    "NEXT_PUBLIC_API_URL": "https://soccer-scout-api-production.up.railway.app"
+    "NEXT_PUBLIC_API_URL": "https://soccer-scout-ai-production.up.railway.app"
   },
   "build": {
     "env": {
