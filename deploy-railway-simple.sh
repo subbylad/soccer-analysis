@@ -28,6 +28,12 @@ fi
 echo "📦 Deploying from current directory..."
 echo "   Make sure you've committed your latest changes to git"
 
+# Debug port configuration
+echo ""
+echo "🔍 Checking PORT configuration..."
+echo "   Gunicorn will read PORT from environment variable"
+echo "   Railway automatically sets PORT for deployed services"
+
 # Deploy
 railway up
 
