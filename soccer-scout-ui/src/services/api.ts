@@ -51,7 +51,10 @@ class SoccerScoutAPI {
     }
 
     try {
-      const data = await response.json();
+      const responseData = await response.json();
+      
+      // Handle the nested response structure from our API
+      const data = responseData.data || responseData;
       
       // Validate the response structure
       if (!data.response_text) {
