@@ -20,17 +20,9 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'], // Modern image formats
   },
   
-  // Security and CORS headers
+  // Security headers (CORS handled in API routes)
   async headers() {
     return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: process.env.NODE_ENV === 'production' ? 'https://your-backend.railway.app' : '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
       {
         source: '/(.*)',
         headers: [
@@ -97,12 +89,8 @@ const nextConfig: NextConfig = {
   // Serverless function configuration
   serverExternalPackages: ['@svgr/webpack'],
   
-  // Output configuration for static export (optional)
-  ...(process.env.EXPORT_MODE === 'static' && {
-    output: 'export',
-    trailingSlash: true,
-    images: { unoptimized: true },
-  }),
+  // Static export disables API routes - removed for Vercel deployment
+  // Note: Static export and API routes cannot be used together
   
   // Experimental features for better performance
   experimental: {

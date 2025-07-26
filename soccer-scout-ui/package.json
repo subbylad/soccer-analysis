@@ -9,7 +9,7 @@
     "lint": "next lint",
     "build:production": "NODE_ENV=production next build",
     "build:analyze": "ANALYZE=true next build",
-    "export": "EXPORT_MODE=static next build && next export",
+    "export:static": "next build && next export",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next out",
     "test": "echo \"No tests specified\" && exit 0"
