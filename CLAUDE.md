@@ -389,6 +389,7 @@ The Soccer Analytics platform has successfully evolved from basic data analysis 
 ### 🐛 **Latest Progress Update (Phase 6): Comprehensive Bug Cleanup**
 
 **✅ COMPLETED:**
+- **CRITICAL API Connection Fix**: Fixed frontend API configuration to use `/api` route in browser environment instead of localhost (`api.ts:33`)
 - **Critical Logger Bug Fix**: Fixed Flask server crash due to undefined logger by moving logging setup before imports (`api_server.py:19-24`)
 - **Memory Leak Prevention**: Fixed MessageList component memory leak with debounced scrolling and proper timeout cleanup (`MessageList.tsx:16-38`)
 - **Race Condition Fix**: Resolved duplicate message IDs using crypto.randomUUID() with fallback counter (`chatStore.ts:8-14`)
@@ -399,6 +400,7 @@ The Soccer Analytics platform has successfully evolved from basic data analysis 
 - **Build Optimization**: All components now build successfully with proper error handling and TypeScript compliance
 
 **🔧 Bug Fix Details:**
+- **Frontend API Connection**: Fixed browser environment to always use `/api` route instead of localhost, ensuring proper connection to Railway backend via Next.js proxy
 - **Flask Server Stability**: Logger initialization moved before middleware imports prevents startup crashes
 - **React Performance**: Debounced scrolling with 100ms timeout prevents excessive DOM updates 
 - **Unique ID Generation**: Crypto API with fallback ensures no duplicate message IDs in high-traffic scenarios

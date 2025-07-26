@@ -21,6 +21,7 @@ class QueryType(Enum):
     SIMILAR_PLAYERS = "similar_players"
     CUSTOM_FILTER = "custom_filter"
     TACTICAL_ANALYSIS = "tactical_analysis"  # GPT-4 enhanced tactical analysis
+    GPT4_ANALYSIS = "gpt4_analysis"  # Direct GPT-4 code generation and execution
     UNKNOWN = "unknown"
 
 class ResponseType(Enum):
@@ -117,6 +118,13 @@ class TacticalAnalysisRequest(AnalysisRequest):
         self.query_type = QueryType.TACTICAL_ANALYSIS
 
 @dataclass
+class GPT4AnalysisRequest(AnalysisRequest):
+    """Request for direct GPT-4 code generation and execution."""
+    
+    def __post_init__(self):
+        self.query_type = QueryType.GPT4_ANALYSIS
+
+@dataclass
 class UnknownRequest(AnalysisRequest):
     """Request that couldn't be parsed into a known pattern."""
     suggested_queries: List[str] = field(default_factory=list)
@@ -164,6 +172,19 @@ class ProspectsResponse(AnalysisResponse):
     
     def __post_init__(self):
         self.response_type = ResponseType.PLAYER_LIST
+
+@dataclass
+class GPT4AnalysisResponse(AnalysisResponse):
+    """Response from GPT-4 code generation and execution."""
+    result: Any = None
+    data: Any = None
+    summary: str = ""
+    insights: List[str] = field(default_factory=list)
+    generated_code: str = ""
+    error_message: str = ""
+    
+    def __post_init__(self):
+        self.response_type = ResponseType.PLAYER_LIST  # Default to player list for UI compatibility
 
 @dataclass
 class ErrorResponse(AnalysisResponse):

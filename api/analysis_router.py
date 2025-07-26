@@ -18,17 +18,20 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from analysis.clean_player_analyzer import CleanPlayerAnalyzer
 from .types import *
+from .query_processor import GPT4FirstQueryProcessor
 
 logger = logging.getLogger(__name__)
 
 class AnalysisRouter:
     """Routes analysis requests to appropriate functions."""
     
-    def __init__(self, data_dir: str = "data/clean"):
+    def __init__(self, data_dir: str = "data/clean", openai_api_key: Optional[str] = None):
         """Initialize with analysis components."""
         try:
             self.analyzer = CleanPlayerAnalyzer(data_dir=data_dir)
             self.cache = {}  # Simple in-memory cache
+            # Initialize GPT-4 processor for direct code execution
+            self.gpt4_processor = GPT4FirstQueryProcessor(api_key=openai_api_key)
             logger.info("Analysis router initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize analysis router: {e}")
@@ -55,6 +58,7 @@ class AnalysisRouter:
                 QueryType.TOP_PERFORMERS: self._handle_top_performers,
                 QueryType.CUSTOM_FILTER: self._handle_custom_filter,
                 QueryType.TACTICAL_ANALYSIS: self._handle_tactical_analysis,
+                QueryType.GPT4_ANALYSIS: self._handle_gpt4_analysis,
                 QueryType.UNKNOWN: self._handle_unknown
             }
             
@@ -551,6 +555,54 @@ class AnalysisRouter:
         except Exception as e:
             return self._create_error_response(request, f"Tactical analysis failed: {e}")
     
+    def _handle_gpt4_analysis(self, request: GPT4AnalysisRequest) -> AnalysisResponse:
+        """Handle GPT-4 direct code generation and execution."""
+        try:
+            # Use the GPT-4 processor to generate and execute code
+            result = self.gpt4_processor.process_query(
+                request.original_query, 
+                self.analyzer
+            )
+            
+            if result['success']:
+                # Create response based on result type
+                response_result = result['result']
+                
+                # Always return GPT4AnalysisResponse to maintain type consistency
+                return GPT4AnalysisResponse(
+                    success=True,
+                    original_request=request,
+                    result=response_result,
+                    data=result.get('data'),
+                    summary=result.get('summary', 'GPT-4 analysis completed'),
+                    insights=result.get('insights', []),
+                    generated_code=result.get('generated_code', '')
+                )
+            else:
+                return ErrorResponse(
+                    success=False,
+                    original_request=request,
+                    error_message=f"GPT-4 Analysis Failed: {result.get('error', 'Unknown error')}",
+                    suggestions=[
+                        "Try rephrasing your question more specifically",
+                        "Ensure you have a valid OpenAI API key",
+                        "Try a simpler query first"
+                    ]
+                )
+                
+        except Exception as e:
+            logger.error(f"GPT-4 analysis handler failed: {e}")
+            return ErrorResponse(
+                success=False,
+                original_request=request,
+                error_message=f"GPT-4 analysis failed: {str(e)}",
+                suggestions=[
+                    "Check your OpenAI API key is valid",
+                    "Try a different query",
+                    "Contact support if the issue persists"
+                ]
+            )
+    
     def _handle_unknown(self, request: UnknownRequest) -> AnalysisResponse:
         """Handle unknown query requests."""
         return ErrorResponse(
@@ -696,6 +748,12 @@ class AnalysisRouter:
             import hashlib
             context_hash = hashlib.md5(request.tactical_context.encode()).hexdigest()[:8]
             key_parts.append(f"context:{context_hash}")
+        
+        # For GPT4 requests, include the query hash to make unique
+        if hasattr(request, 'query_type') and request.query_type == QueryType.GPT4_ANALYSIS:
+            import hashlib
+            query_hash = hashlib.md5(request.original_query.encode()).hexdigest()[:8]
+            key_parts.append(f"gpt4:{query_hash}")
         
         return "|".join(key_parts)
     

@@ -59,10 +59,10 @@ class SoccerAnalyticsAPI:
         # Initialize components
         try:
             logger.info("Initializing Soccer Analytics API...")
-            # Pass OpenAI API key to QueryProcessor for GPT-4 enhancement
+            # Pass OpenAI API key to both QueryProcessor and AnalysisRouter for GPT-4 enhancement
             openai_key = getattr(self.config, 'openai_api_key', None)
             self.query_processor = QueryProcessor(openai_api_key=openai_key)
-            self.analysis_router = AnalysisRouter(data_dir=self.config.data_dir)
+            self.analysis_router = AnalysisRouter(data_dir=self.config.data_dir, openai_api_key=openai_key)
             self.response_formatter = ResponseFormatter()
             
             # Simple query history

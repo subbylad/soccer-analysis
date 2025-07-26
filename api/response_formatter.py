@@ -26,6 +26,10 @@ class ResponseFormatter:
             ResponseType.ERROR: self._format_error
         }
         
+        # Handle GPT4AnalysisResponse specifically
+        if isinstance(response, GPT4AnalysisResponse):
+            return self._format_gpt4_analysis(response)
+        
         formatter = formatters.get(response.response_type, self._format_generic)
         return formatter(response)
     
@@ -159,6 +163,103 @@ class ResponseFormatter:
             "execution_time": getattr(response, 'execution_time', 0),
             "chat_text": f"❌ {getattr(response, 'error_message', 'An error occurred')}"
         }
+    
+    def _format_gpt4_analysis(self, response: GPT4AnalysisResponse) -> Dict[str, Any]:
+        """Format GPT-4 analysis responses."""
+        formatted = {
+            "type": "gpt4_analysis",
+            "success": response.success,
+            "summary": response.summary or "GPT-4 Analysis completed",
+            "execution_time": getattr(response, 'execution_time', 0),
+            "generated_code": response.generated_code,
+            "insights": response.insights,
+            "result": None,
+            "display_data": None,
+            "players": []
+        }
+        
+        # Handle different result types
+        result = response.result
+        if isinstance(result, pd.DataFrame):
+            # Convert DataFrame to display format
+            try:
+                # Reset index if it's a MultiIndex
+                if isinstance(result.index, pd.MultiIndex):
+                    display_df = result.reset_index()
+                else:
+                    display_df = result
+                
+                formatted["display_data"] = display_df.head(20).to_dict('records')
+                formatted["total_found"] = len(display_df)
+                
+                # Create player cards for chat display if it's player data
+                if 'player' in display_df.columns or any('player' in str(col).lower() for col in display_df.columns):
+                    for idx, row in display_df.head(10).iterrows():
+                        try:
+                            player_card = {
+                                "name": str(row.get('player', row.get('Player', f'Player {idx}'))),
+                                "team": str(row.get('team', row.get('Team', 'Unknown'))),
+                                "league": str(row.get('league', row.get('League', 'Unknown'))),
+                                "position": str(row.get('position', row.get('Position', 'N/A'))),
+                                "age": int(row.get('age', row.get('Age', 0))) if pd.notna(row.get('age', row.get('Age', 0))) else 0,
+                                "minutes": int(row.get('minutes', row.get('Minutes', 0))) if pd.notna(row.get('minutes', row.get('Minutes', 0))) else 0,
+                                "goals": float(row.get('goals', row.get('Goals', 0))) if pd.notna(row.get('goals', row.get('Goals', 0))) else 0,
+                                "assists": float(row.get('assists', row.get('Assists', 0))) if pd.notna(row.get('assists', row.get('Assists', 0))) else 0
+                            }
+                            formatted["players"].append(player_card)
+                        except Exception as e:
+                            logger.warning(f"Error processing player {idx}: {e}")
+                            continue
+                            
+            except Exception as e:
+                logger.error(f"Error processing DataFrame result: {e}")
+                formatted["result"] = str(result)
+        else:
+            # For non-DataFrame results
+            formatted["result"] = result
+            formatted["total_found"] = 1 if result else 0
+        
+        # Create chat text
+        formatted["chat_text"] = self._create_gpt4_chat_text(formatted)
+        
+        return formatted
+    
+    def _create_gpt4_chat_text(self, formatted_data: Dict[str, Any]) -> str:
+        """Create chat text for GPT-4 analysis results."""
+        if not formatted_data.get('success', False):
+            return f"❌ GPT-4 Analysis failed: {formatted_data.get('error_message', 'Unknown error')}"
+        
+        summary = formatted_data.get('summary', 'GPT-4 Analysis completed')
+        insights = formatted_data.get('insights', [])
+        players = formatted_data.get('players', [])
+        
+        text_parts = [f"🤖 **GPT-4 Analysis:** {summary}\n"]
+        
+        # Add insights if available
+        if insights:
+            text_parts.append("🧠 **AI Insights:**")
+            for insight in insights[:3]:  # Limit to top 3 insights
+                text_parts.append(f"• {insight}")
+            text_parts.append("")
+        
+        # Add player results if available
+        if players:
+            text_parts.append("🌟 **Top Results:**")
+            for i, player in enumerate(players[:5], 1):
+                name = player.get('name', 'Unknown')
+                team = player.get('team', 'Unknown')
+                age = player.get('age', 'N/A')
+                position = player.get('position', 'N/A')
+                text_parts.append(f"{i}. **{name}** ({team}) - {position}, Age {age}")
+            
+            if len(players) > 5:
+                text_parts.append(f"\n... and {len(players) - 5} more results")
+        
+        # Add code info
+        if formatted_data.get('generated_code'):
+            text_parts.append(f"\n🔧 *Powered by AI-generated Python analysis*")
+        
+        return "\n".join(text_parts)
     
     def _format_generic(self, response) -> Dict[str, Any]:
         """Generic formatter for unknown response types."""
