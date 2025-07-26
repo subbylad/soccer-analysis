@@ -128,6 +128,34 @@ def log_response(response):
     logger.info(f"Response: {response.status_code}")
     return response
 
+# Simple health check endpoint for Railway
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Simple health check endpoint."""
+    try:
+        return jsonify({
+            "status": "healthy",
+            "service": "soccer-scout-api",
+            "timestamp": time.time()
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy", 
+            "error": str(e),
+            "timestamp": time.time()
+        }), 500
+
+# Root endpoint
+@app.route('/', methods=['GET'])
+def root():
+    """Root endpoint."""
+    return jsonify({
+        "message": "Soccer Scout AI API",
+        "status": "running",
+        "version": "1.0.0",
+        "endpoints": ["/api/health", "/api/query"]
+    })
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     """Global exception handler."""
