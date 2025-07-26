@@ -128,33 +128,9 @@ def log_response(response):
     logger.info(f"Response: {response.status_code}")
     return response
 
-# Simple health check endpoint for Railway
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    """Simple health check endpoint."""
-    try:
-        return jsonify({
-            "status": "healthy",
-            "service": "soccer-scout-api",
-            "timestamp": time.time()
-        }), 200
-    except Exception as e:
-        return jsonify({
-            "status": "unhealthy", 
-            "error": str(e),
-            "timestamp": time.time()
-        }), 500
+# Health check endpoint defined below in CORE API ENDPOINTS section
 
-# Root endpoint
-@app.route('/', methods=['GET'])
-def root():
-    """Root endpoint."""
-    return jsonify({
-        "message": "Soccer Scout AI API",
-        "status": "running",
-        "version": "1.0.0",
-        "endpoints": ["/api/health", "/api/query"]
-    })
+# Root endpoint defined below in ROOT ENDPOINT section
 
 @app.errorhandler(Exception)
 def handle_exception(e):
@@ -575,28 +551,25 @@ def create_app(debug=False, enable_production_features=True):
     return app
 
 # Initialize app for production/development
+logger.info("🚀 Initializing Flask application...")
+
+# Detect if we're in production environment
+is_production = (
+    os.getenv('RAILWAY_ENVIRONMENT') is not None or 
+    os.getenv('DYNO') is not None or
+    os.getenv('RENDER') is not None or
+    'gunicorn' in os.environ.get('SERVER_SOFTWARE', '')
+)
+
 try:
-    # Always create the app instance for Gunicorn to find
-    logger.info("🚀 Initializing Flask application...")
-    
-    # Detect if we're in production environment
-    is_production = (
-        os.getenv('RAILWAY_ENVIRONMENT') is not None or 
-        os.getenv('DYNO') is not None or
-        os.getenv('RENDER') is not None or
-        'gunicorn' in os.environ.get('SERVER_SOFTWARE', '')
-    )
-    
     if is_production:
         logger.info("🔒 Production environment detected")
         app = create_app(debug=False, enable_production_features=True)
+        logger.info("✅ Flask application initialized successfully")
     else:
         logger.info("🔧 Development environment")
-        # Create app but don't auto-initialize in development to avoid conflicts
-        pass
+        # In development, app will be created in __main__ section
         
-    logger.info("✅ Flask application initialized successfully")
-    
 except Exception as e:
     logger.error(f"❌ Failed to initialize Flask app: {e}")
     logger.error(f"Error details: {str(e)}")
@@ -607,19 +580,19 @@ except Exception as e:
     
     @app.route('/')
     def error_page():
-        return {
+        return jsonify({
             "error": "Application initialization failed",
             "details": str(e),
             "status": "error"
-        }, 500
+        }), 500
     
     @app.route('/api/health')
     def error_health():
-        return {
+        return jsonify({
             "status": "error",
             "error": "Application failed to initialize",
             "details": str(e)
-        }, 500
+        }), 500
 
 if __name__ == '__main__':
     import argparse
