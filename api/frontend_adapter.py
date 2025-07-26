@@ -8,6 +8,7 @@ expected response structure defined in TypeScript interfaces.
 
 from typing import Dict, Any, List, Optional
 import logging
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -94,25 +95,37 @@ class FrontendResponseAdapter:
         # For comparison queries, use comparison_data
         if internal_response.get('type') == 'comparison' and 'comparison_data' in internal_response:
             raw_players = internal_response['comparison_data']
-        # For player lists, prefer display_data which has complete info
+        # For player lists, merge players array (has team/league) with display_data (has more stats)
         else:
             display_data = internal_response.get('display_data', [])
             players_array = internal_response.get('players', [])
             
-            # If display_data exists, use it (it has complete player info)
-            if display_data:
-                raw_players = display_data
-                # Merge with players array for names if available
+            # Merge data from both sources for complete information
+            if display_data and players_array:
+                raw_players = []
                 for i, display_item in enumerate(display_data):
-                    if i < len(players_array) and 'name' in players_array[i]:
-                        # Extract clean name from players array if available
-                        player_name = players_array[i].get('name', '')
-                        # Try to extract name from the mangled format
-                        if 'name' in players_array[i]:
-                            display_item['extracted_name'] = player_name
-            else:
-                # Fallback to players array
+                    # Start with display data (has more stats)
+                    merged_item = display_item.copy()
+                    
+                    # Merge in team/league info from players array if available
+                    if i < len(players_array):
+                        player_info = players_array[i]
+                        merged_item.update({
+                            'name': player_info.get('name', merged_item.get('name')),
+                            'team': player_info.get('team', merged_item.get('team', 'Unknown')),
+                            'league': player_info.get('league', merged_item.get('league', 'Unknown')),
+                            'club': player_info.get('team', merged_item.get('team', 'Unknown')),  # Alias for frontend
+                        })
+                    
+                    raw_players.append(merged_item)
+            elif players_array:
+                # Use players array if display_data is not available
                 raw_players = players_array
+            elif display_data:
+                # Use display_data if players array is not available
+                raw_players = display_data
+            else:
+                raw_players = []
         
         if not raw_players:
             return None
@@ -146,10 +159,13 @@ class FrontendResponseAdapter:
                 if match:
                     name = match.group(1)
             
-            # Handle age - could be string "N/A" or number
+            # Handle age - could be string "N/A" or number  
             age_raw = player_data.get('Age', player_data.get('age', 0))
             try:
-                age = int(float(age_raw)) if age_raw != "N/A" and age_raw is not None else 0
+                if age_raw == "N/A" or age_raw is None or pd.isna(age_raw):
+                    age = 0
+                else:
+                    age = int(float(age_raw))
             except (ValueError, TypeError):
                 age = 0
             
@@ -159,7 +175,7 @@ class FrontendResponseAdapter:
                 "name": name,
                 "position": player_data.get('Position', player_data.get('position', 'Unknown')),
                 "age": age,
-                "club": player_data.get('Team', player_data.get('team', player_data.get('Squad', 'Unknown'))),
+                "club": player_data.get('Team', player_data.get('team', player_data.get('Squad', player_data.get('club', 'Unknown')))),
                 "league": player_data.get('League', player_data.get('league', player_data.get('Comp', 'Unknown'))),
                 "nationality": player_data.get('Nation', player_data.get('nationality', 'Unknown')),
                 "stats": FrontendResponseAdapter._format_player_stats(player_data)
@@ -197,11 +213,11 @@ class FrontendResponseAdapter:
             "goals": safe_int(player_data.get('Goals', player_data.get('goals', player_data.get('Gls', 0)))),
             "assists": safe_int(player_data.get('Assists', player_data.get('assists', player_data.get('Ast', 0)))),
             "matches_played": safe_int(player_data.get('Matches', player_data.get('matches_played', player_data.get('MP', 0)))),
-            "minutes_played": safe_int(player_data.get('Minutes', player_data.get('minutes_played', player_data.get('Min', 0)))),
+            "minutes_played": safe_int(player_data.get('Minutes', player_data.get('minutes_played', player_data.get('minutes', player_data.get('Min', 0))))),
             "goals_per_90": safe_float(player_data.get('Goals_per_90', player_data.get('goals_per_90', player_data.get('Gls/90', 0)))),
             "assists_per_90": safe_float(player_data.get('Assists_per_90', player_data.get('assists_per_90', player_data.get('Ast/90', 0)))),
-            "xg": safe_float(player_data.get('xG', player_data.get('xg', player_data.get('Expected_Goals', 0)))),
-            "xa": safe_float(player_data.get('xA', player_data.get('xa', player_data.get('Expected_Assists', 0)))),
+            "xg": safe_float(player_data.get('xG', player_data.get('xg', player_data.get('expected_goals', player_data.get('Expected_Goals', 0))))),
+            "xa": safe_float(player_data.get('xA', player_data.get('xa', player_data.get('expected_assists', player_data.get('Expected_Assists', 0))))),
             "progressive_passes": safe_int(player_data.get('Progressive_Passes', player_data.get('progressive_passes', player_data.get('PrgP', 0)))),
             "progressive_carries": safe_int(player_data.get('Progressive_Carries', player_data.get('progressive_carries', player_data.get('PrgC', 0)))),
             "potential_score": safe_float(player_data.get('potential_score', player_data.get('Potential_Score')))

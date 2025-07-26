@@ -86,10 +86,25 @@ class ResponseFormatter:
                 # Create player cards for chat display
                 for idx, row in data_df.head(10).iterrows():
                     try:
+                        # Extract team and league from index if available
+                        team = str(row.get('team', 'Unknown'))
+                        league = str(row.get('league', 'Unknown'))
+                        player_name = str(row.get('player', f'Player {idx}'))
+                        
+                        # If data comes from MultiIndex DataFrame, extract from index
+                        if hasattr(idx, '__getitem__') and len(idx) >= 4:
+                            league = str(idx[0]) if idx[0] else league
+                            team = str(idx[2]) if idx[2] else team
+                            player_name = str(idx[3]) if idx[3] else player_name
+                        elif isinstance(idx, tuple) and len(idx) >= 4:
+                            league = str(idx[0]) if idx[0] else league
+                            team = str(idx[2]) if idx[2] else team
+                            player_name = str(idx[3]) if idx[3] else player_name
+                        
                         player_card = {
-                            "name": str(row.get('player', f'Player {idx}')),
-                            "team": str(row.get('team', 'Unknown')),
-                            "league": str(row.get('league', 'Unknown')),
+                            "name": player_name,
+                            "team": team,
+                            "league": league,
                             "position": str(row.get('position', 'N/A')),
                             "age": int(row.get('age', 0)) if pd.notna(row.get('age')) else 0,
                             "minutes": int(row.get('minutes', 0)) if pd.notna(row.get('minutes')) else 0,

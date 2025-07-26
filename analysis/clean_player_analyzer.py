@@ -121,9 +121,9 @@ class CleanPlayerAnalyzer:
             position_matches = result['position'].str.contains(position, case=False, na=False)
             result = result[position_matches]
         
-        # Return key columns
+        # Return key columns including age
         key_columns = [
-            'nationality', 'position', 'minutes', 'goals', 'assists', 
+            'nationality', 'position', 'age', 'minutes', 'goals', 'assists', 
             'expected_goals', 'expected_assists', 'goals_per_90', 'assists_per_90'
         ]
         
