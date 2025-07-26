@@ -67,16 +67,14 @@ result = api.query("Find an alternative to Rodri for Man City's system")
 
 ## 🚀 How to Run
 
-### Web Dashboard (Recommended)
+### Modern Web Interface (Recommended)
 ```bash
-python3 run_dashboard.py
-# Opens at http://localhost:8501
-```
+# Start backend API server
+python3 api_server.py --port 5001 --debug
 
-### Chat Interface  
-```bash
-python3 -m streamlit run dashboards/simple_chat.py --server.port 8503
-# Opens at http://localhost:8503
+# Start frontend (in new terminal)
+cd soccer-scout-ui && npm run dev
+# Opens at http://localhost:3000
 ```
 
 ### GPT-4 Enhanced API Testing
@@ -272,60 +270,61 @@ python3 tests/test_api.py  # Basic functionality
 python3 test_gpt_integration.py  # AI capabilities
 ```
 
-**🎯 Current Focus**: Phase 3 Complete - Ready for Next.js frontend development and production deployment
+**🎯 Current Focus**: Phase 5 Complete - World.org-inspired UI transformation delivered
 
-## 🎉 **PROJECT STATUS: PRODUCTION-READY AI SOCCER SCOUT**
+## 🎉 **PROJECT STATUS: PRODUCTION-READY AI SOCCER SCOUT WITH WORLD.ORG AESTHETIC**
 
-The Soccer Analytics platform has successfully evolved from basic data analysis to a **production-ready AI-powered conversational scout** with GPT-4 intelligence. All core functionality is complete and tested.
+The Soccer Analytics platform has successfully evolved from basic data analysis to a **production-ready AI-powered conversational scout** with GPT-4 intelligence and a sophisticated, minimal UI inspired by world.org's design philosophy.
 
-### 🚀 **Latest Progress Update (Phase 2)**
-
-**✅ COMPLETED:**
-- **TacticalAnalysisRequest Handler**: Fully implemented in `analysis_router.py` with:
-  - Advanced filtering (position, league, age, minutes)
-  - Priority stats scoring with min-max normalization
-  - Tactical score ranking and candidate selection
-  - Comprehensive error handling and caching
-  - Full integration with existing API infrastructure
+### 🎨 **Latest Progress Update (Phase 5): World.org UI Transformation**
 
 **✅ COMPLETED:**
-- **GPT-4 Scout Report Generation**: Enhanced response formatter with professional scout reports
-- **Query Detection**: 4-tier system with tactical query pattern matching  
-- **Response Formatting**: Rich scout reports with AI reasoning and tactical insights
-- **System Integration**: All components tested and verified for GPT-4 readiness
+- **Complete UI Redesign**: Transformed from colorful, gradient-heavy interface to world.org's sophisticated minimalism
+- **Design System Implementation**: Professional grayscale palette with clean typography and generous whitespace
+- **Component Restructure**: All major components redesigned with world.org aesthetic principles
+- **Project Cleanup**: Removed obsolete files and streamlined project structure
 
-### 🚧 **Phase 3: Production Readiness & Modern UI (COMPLETED)**
+**🎨 Design Transformation Details:**
+- **Color Palette**: Moved from blues/greens to sophisticated grayscale with black accents
+- **Typography**: Clean Inter font with refined hierarchy and spacing
+- **Layout**: Generous whitespace and card-based organization
+- **Components**: Minimal borders, subtle shadows, typography-first approach
+- **User Experience**: Professional interface suitable for serious soccer analytics
 
-**✅ COMPLETED:**
-- **GPT-4 Production Testing**: Comprehensive test suite with 100% success rate, robust error handling, and production documentation
-- **Modern Chat Interface Research**: Complete technical specification with Next.js + React recommendation, API contracts, and development roadmap
-- **Production Documentation**: Setup guides, tactical query examples, and deployment specifications
+**📁 Key Changes:**
+- `tailwind.config.ts` - World.org inspired color system and typography
+- `globals.css` - Clean design tokens and utility classes
+- `ChatInterface.tsx` - Professional header with minimal layout
+- `MessageBubble.tsx` - Clean conversation flow without chat bubbles
+- `PlayerCard.tsx` - Minimal table format replacing colorful stat boxes
+- `QueryInput.tsx` - Professional input field with world.org styling
 
-**📁 New Deliverables:**
-- `test_gpt_production.py` - Production-ready GPT-4 test suite
-- `GPT4_SETUP_GUIDE.md` - Complete OpenAI integration guide
-- `PRODUCTION_READY_SUMMARY.md` - Full production readiness documentation
-- `tactical_query_examples.py` - 8 comprehensive tactical query examples
-- Modern UI technical specification with Next.js architecture
+### 🏗️ **Complete Architecture (All Phases)**
 
-### ✅ **Phase 4: Modern Frontend Development (COMPLETED)**
+**✅ Phase 1: GPT-4 Enhanced Backend Intelligence (COMPLETED)**
+- 4-tier query processing with GPT-4 tactical analysis
+- TacticalAnalysisRequest for complex scout queries
+- OpenAI integration with graceful degradation
 
-**🎉 MAJOR ACHIEVEMENT: Complete Modern Web Application**
+**✅ Phase 2: Complete AI Scout (COMPLETED)**
+- Professional scout report generation with GPT-4 reasoning  
+- Advanced tactical analysis and player compatibility
+- Comprehensive response formatting with insights
 
-**✅ COMPLETED:**
-- **Next.js + React Frontend**: Modern TypeScript chat interface with professional UI
-- **Core Chat Components**: MessageList, QueryInput, PlayerCard with rich data visualization
-- **API Integration**: Complete frontend-backend connection with CORS support
-- **Professional Styling**: Tailwind CSS with animations and responsive design
-- **Production API Server**: Flask server with rate limiting, security headers, and validation
-- **Comprehensive Documentation**: Complete launch guide and API documentation
+**✅ Phase 3: Production Readiness (COMPLETED)**
+- Production-ready Flask API server with CORS support
+- Comprehensive test suite and error handling
+- Rate limiting, security headers, and validation
 
-**📁 New Deliverables:**
-- `soccer-scout-ui/` - Complete Next.js application with modern chat interface
-- `api_server.py` - Production-ready Flask API server with CORS
-- `API_DOCUMENTATION_FRONTEND.md` - Complete API documentation
-- `LAUNCH_GUIDE.md` - Comprehensive setup and deployment guide
-- Enhanced TypeScript interfaces for all data types
+**✅ Phase 4: Modern Frontend Development (COMPLETED)**
+- Next.js + React TypeScript application
+- Complete frontend-backend integration
+- Professional Tailwind CSS styling and animations
+
+**✅ Phase 5: World.org UI Transformation (COMPLETED)**
+- Sophisticated minimal design inspired by world.org
+- Typography-first approach with clean visual hierarchy
+- Professional interface suitable for coaches and analysts
 
 **🚀 PRODUCTION READY:**
-Your complete AI Soccer Scout web application is now ready for immediate use!
+Your complete AI Soccer Scout web application now features world.org's sophisticated aesthetic and is ready for professional use!
