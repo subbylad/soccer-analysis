@@ -30,7 +30,7 @@ class SoccerScoutAPI {
   private config: APIConfig;
 
   constructor(config: APIConfig = { 
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001', 
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api' : 'http://localhost:5001'), 
     timeout: 30000 
   }) {
     this.config = config;
