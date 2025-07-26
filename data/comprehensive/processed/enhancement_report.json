@@ -1,0 +1,96 @@
+{
+  "coverage": {
+    "timestamp": "2025-07-26T10:54:23.590468",
+    "existing_data": {
+      "player_shooting_clean.csv": {
+        "shape": [
+          2853,
+          26
+        ],
+        "columns": 26,
+        "players": 2853
+      },
+      "player_standard_clean.csv": {
+        "shape": [
+          2854,
+          37
+        ],
+        "columns": 37,
+        "players": 2854
+      },
+      "player_passing_clean.csv": {
+        "shape": [
+          2853,
+          32
+        ],
+        "columns": 32,
+        "players": 2853
+      },
+      "player_defense_clean.csv": {
+        "shape": [
+          2853,
+          25
+        ],
+        "columns": 25,
+        "players": 2853
+      }
+    },
+    "enhanced_data": {
+      "player_misc_2024.csv": {
+        "shape": [
+          2856,
+          24
+        ],
+        "columns": 24,
+        "players": 2856
+      },
+      "player_possession_2024.csv": {
+        "shape": [
+          2856,
+          30
+        ],
+        "columns": 30,
+        "players": 2856
+      },
+      "player_keeper_2024.csv": {
+        "shape": [
+          214,
+          26
+        ],
+        "columns": 26,
+        "players": 214
+      },
+      "player_keeper_adv_2024.csv": {
+        "shape": [
+          214,
+          33
+        ],
+        "columns": 33,
+        "players": 214
+      },
+      "player_playing_time_2024.csv": {
+        "shape": [
+          3510,
+          29
+        ],
+        "columns": 29,
+        "players": 3510
+      }
+    },
+    "enhancement_summary": {
+      "existing_metrics": 120,
+      "enhanced_metrics": 142,
+      "total_metrics": 262,
+      "improvement_percentage": 118.3
+    }
+  },
+  "compatibility": {
+    "exists_player_standard_clean.csv": true,
+    "exists_player_passing_clean.csv": true,
+    "exists_player_defense_clean.csv": true,
+    "exists_player_shooting_clean.csv": true,
+    "analyzer_works": true,
+    "no_conflicts": true
+  },
+  "timestamp": "2025-07-26T10:54:23.649260"
+}

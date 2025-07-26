@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-07-26T11:03:48.415909",
+  "existing_metrics": {
+    "standard": [
+      "goals",
+      "assists",
+      "expected_goals",
+      "progressive_passes"
+    ],
+    "passing": [
+      "passes_completed",
+      "pass_completion_pct",
+      "key_passes"
+    ],
+    "defense": [
+      "tackles",
+      "interceptions",
+      "blocks"
+    ],
+    "shooting": [
+      "shots",
+      "shots_on_target",
+      "goals_per_shot"
+    ]
+  },
+  "enhanced_metrics": {
+    "possession": [
+      "total_touches",
+      "touches_att_penalty_area",
+      "dribble_attempts",
+      "dribble_success_rate",
+      "progressive_carries",
+      "carries_into_penalty_area"
+    ],
+    "misc": [
+      "fouls_committed",
+      "fouls_drawn",
+      "aerial_duels_won",
+      "ball_recoveries",
+      "penalties_won",
+      "offsides"
+    ],
+    "playing_time": [
+      "minutes_per_match",
+      "substitute_appearances",
+      "complete_matches",
+      "minutes_percentage"
+    ],
+    "goalkeeper": [
+      "saves",
+      "save_percentage",
+      "clean_sheets",
+      "goals_against_per_90",
+      "penalty_save_percentage"
+    ]
+  },
+  "total_metrics": 262,
+  "improvement_over_existing": "118.3%"
+}

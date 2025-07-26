@@ -55,7 +55,10 @@ CORS(app, origins=[
     "http://localhost:3001",  # Alternative port
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
-    # Add production domains here
+    # Production domains
+    "https://soccer-scout-ui.vercel.app",  # Original monorepo frontend
+    "https://soccer-scout-frontend.vercel.app",  # New frontend repository
+    "https://*.vercel.app",  # All Vercel preview deployments
 ], supports_credentials=True)
 
 # Global API instance
