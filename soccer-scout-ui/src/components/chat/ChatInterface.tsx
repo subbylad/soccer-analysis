@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { MessageList } from './MessageList';
 import { QueryInput } from './QueryInput';
 import { useChatStore } from '@/store/chatStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export const ChatInterface: React.FC = () => {
   const { messages, isLoading } = useChatStore();
@@ -34,8 +35,12 @@ export const ChatInterface: React.FC = () => {
       <main className="flex-1 py-12">
         <div className="world-layout-grid">
           <div className="flex flex-col gap-8">
-            <MessageList messages={messages} />
-            <QueryInput disabled={isLoading} />
+            <ErrorBoundary>
+              <MessageList messages={messages} />
+            </ErrorBoundary>
+            <ErrorBoundary>
+              <QueryInput disabled={isLoading} />
+            </ErrorBoundary>
           </div>
         </div>
       </main>

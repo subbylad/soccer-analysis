@@ -3,13 +3,35 @@ import { useChatStore } from '@/store/chatStore';
 import { api } from '@/services/api';
 import { QueryResponse } from '@/types';
 
+// Response validation schema to prevent runtime crashes
+const validateQueryResponse = (data: any): data is QueryResponse => {
+  return (
+    data &&
+    typeof data === 'object' &&
+    typeof data.response_text === 'string' &&
+    typeof data.query_type === 'string' &&
+    (data.players === undefined || Array.isArray(data.players)) &&
+    (data.analysis === undefined || typeof data.analysis === 'object') &&
+    (data.comparison === undefined || typeof data.comparison === 'object') &&
+    (data.scouting_report === undefined || typeof data.scouting_report === 'object')
+  );
+};
+
 export const useChat = () => {
   const { addMessage, updateMessage, setLoading } = useChatStore();
 
   const queryMutation = useMutation({
     mutationFn: async (query: string): Promise<QueryResponse> => {
       try {
-        return await api.query(query);
+        const data = await api.query(query);
+        
+        // Validate response structure to prevent runtime errors
+        if (!validateQueryResponse(data)) {
+          console.error('Invalid API response structure:', data);
+          throw new Error('Invalid response format from API');
+        }
+        
+        return data;
       } catch (error) {
         // Fallback response when API is not available (e.g., in Vercel deployment)
         console.warn('API not available, using fallback response:', error);
@@ -61,14 +83,15 @@ The interface you're seeing showcases the new world.org-inspired minimal aesthet
       const loadingMessage = messages.find(msg => msg.isLoading && msg.type === 'assistant');
       
       if (loadingMessage) {
+        // Safe property access with validation
         updateMessage(loadingMessage.id, {
-          content: data.response_text,
+          content: data.response_text || 'No response received',
           isLoading: false,
-          players: data.players,
-          analysis: data.analysis,
-          comparison: data.comparison,
-          scouting_report: data.scouting_report,
-          query_type: data.query_type,
+          players: data.players || [],
+          analysis: data.analysis || undefined,
+          comparison: data.comparison || undefined,
+          scouting_report: data.scouting_report || undefined,
+          query_type: data.query_type || 'general',
         });
       }
 
