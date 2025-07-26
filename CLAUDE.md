@@ -3,13 +3,26 @@
 ## 🚀 Project Overview
 This is an **AI-powered soccer scout** built on top of a comprehensive Python-based soccer analytics toolkit. The project has evolved from basic analytics into an intelligent system that combines GPT-4 reasoning with soccer data analysis to create a conversational scout interface.
 
-**Current Status**: **PRODUCTION-READY SOCCER SCOUT AI** - A complete chat-first interface with GPT-4 intelligence, modern Next.js frontend, and Railway/Vercel deployment that handles complex tactical queries like "Who can play alongside Kobbie Mainoo in Ligue 1?" with professional scout reasoning.
+**Current Status**: **PRODUCTION-READY SOCCER SCOUT AI** - A complete chat-first interface with GPT-4 intelligence, separated into backend (Railway) and frontend (Vercel) repositories that handles complex tactical queries like "Who can play alongside Kobbie Mainoo in Ligue 1?" with professional scout reasoning.
+
+## 🔧 **Repository Architecture (Two-Repo System)**
+- **Backend Repository** (this repo): `socceranalysis/` - API server, data analysis, GPT-4 integration
+- **Frontend Repository**: `soccer-scout-frontend/` - Next.js React interface, chat UI
+- **Integration**: Cross-origin API calls with CORS configuration
 
 ## 📊 Current Data & Coverage
+
+### **Core Data (Original)**
 - **Source**: FBref (Football Reference) 2024/25 season data
 - **Scale**: 2,853 players from 96 teams across Big 5 European leagues
 - **Data Types**: Standard stats, shooting, passing, defense metrics
 - **Location**: `data/clean/` contains processed CSV files ready for analysis
+
+### **Enhanced Data (New)**
+- **Comprehensive FBref Data**: 260+ metrics (118% increase from original)
+- **New Metrics**: Possession, behavioral, playing time, goalkeeper specialization
+- **Location**: `data/comprehensive/` contains enhanced datasets
+- **AI-Optimized**: Structured for GPT-4 direct consumption
 
 ## 🏗️ Architecture & Key Components
 
@@ -68,17 +81,19 @@ result = api.query("Find an alternative to Rodri for Man City's system")
 
 ## 🚀 How to Run
 
-### Production Deployment (Live)
-**Frontend**: https://soccer-scout-ui.vercel.app
-**Backend**: https://soccer-scout-api-production.up.railway.app
+### Production Deployment (Live) - Two Repository System
+**Frontend**: https://soccer-scout-frontend.vercel.app (separate repository)
+**Backend**: https://soccer-scout-api-production.up.railway.app (this repository)
 
 ### Local Development
 ```bash
-# Start backend API server
+# Backend (this repository)
 python3 api_server.py --port 5001 --debug
 
-# Start frontend (in new terminal)
-cd soccer-scout-ui && npm run dev
+# Frontend (separate repository)
+# Clone frontend repository separately:
+# git clone https://github.com/yourusername/soccer-scout-frontend.git
+# cd soccer-scout-frontend && npm run dev
 # Opens at http://localhost:3000
 ```
 
