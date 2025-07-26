@@ -37,13 +37,13 @@ export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
           </p>
           <div className="grid grid-cols-1 gap-2 text-sm text-slate-400">
             <div className="bg-white/50 rounded-lg p-3 border border-slate-200">
-              "Compare Haaland vs Mbappé"
+              &ldquo;Compare Haaland vs Mbappé&rdquo;
             </div>
             <div className="bg-white/50 rounded-lg p-3 border border-slate-200">
-              "Who can play alongside Kobbie Mainoo?"
+              &ldquo;Who can play alongside Kobbie Mainoo?&rdquo;
             </div>
             <div className="bg-white/50 rounded-lg p-3 border border-slate-200">
-              "Find young midfielders under 21"
+              &ldquo;Find young midfielders under 21&rdquo;
             </div>
           </div>
         </motion.div>

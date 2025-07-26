@@ -162,7 +162,7 @@ export interface APIErrorResponse {
   detail: string;
   code?: string;
   type?: 'validation_error' | 'not_found' | 'server_error';
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 // UI-specific types

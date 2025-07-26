@@ -46,7 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
         className
       )}
       disabled={disabled || loading}
-      {...(props as any)}
+      {...props}
     >
       {loading && (
         <motion.div
