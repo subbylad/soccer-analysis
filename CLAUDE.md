@@ -270,7 +270,67 @@ python3 tests/test_api.py  # Basic functionality
 python3 test_gpt_integration.py  # AI capabilities
 ```
 
-**🎯 Current Focus**: Phase 5 Complete - World.org-inspired UI transformation delivered
+**🎯 Current Focus**: Phase 6 Complete - Production deployment fixes and full system integration
+
+## 🚨 **CRITICAL DEPLOYMENT FIXES APPLIED (Jan 2025)**
+
+### ⚠️ **Known Issues & Solutions for Future Development:**
+
+#### **1. Frontend API Route Fallback Issue**
+**Problem**: `soccer-scout-ui/src/app/api/query/route.ts` had extensive mock data fallback that prevented backend connection.
+**Solution**: Removed mock response functions, hardcoded Railway backend URL, simplified error handling.
+**Files Fixed**: `src/app/api/query/route.ts`
+**Lesson**: Avoid elaborate fallback systems in production - they mask real connection issues.
+
+#### **2. React Hook Demo Fallback**
+**Problem**: `src/hooks/useChat.ts` caught all API errors and returned demo "world.org-inspired" message instead of real responses.
+**Solution**: Removed demo fallback, let errors propagate properly, improved error messages.
+**Files Fixed**: `src/hooks/useChat.ts` 
+**Lesson**: Don't suppress errors with demo content - show actual error messages to users.
+
+#### **3. API Response Structure Mismatch**
+**Problem**: Frontend API service expected flat `{ response_text }` but backend returns nested `{ data: { response_text } }`.
+**Solution**: Updated `src/services/api.ts` to handle nested structure with fallback to flat structure.
+**Files Fixed**: `src/services/api.ts`
+**Lesson**: Always validate actual API response structure, don't assume format.
+
+#### **4. Tailwind CSS v4 Compatibility**
+**Problem**: Project used Tailwind v4 (unstable) with v3 configuration syntax.
+**Solution**: Downgraded to stable Tailwind v3.4.17, updated postcss.config.mjs, fixed missing color definitions.
+**Files Fixed**: `package.json`, `postcss.config.mjs`, `tailwind.config.js`
+**Lesson**: Use stable versions for production deployments.
+
+#### **5. Multiple Vercel Deployments Confusion**
+**Problem**: Multiple deployment URLs created confusion about which one is live.
+**Solution**: Main domain is always `https://soccer-scout-ui.vercel.app` - this is what users click from dashboard.
+**Lesson**: Document primary domains clearly, check `npx vercel inspect` to see domain aliases.
+
+### 🌐 **Production URLs (VERIFIED WORKING)**
+- **Frontend**: https://soccer-scout-ui.vercel.app
+- **Backend**: https://soccer-scout-api-production.up.railway.app
+
+### ✅ **Deployment Verification Commands**
+```bash
+# Test backend health
+curl -s "https://soccer-scout-api-production.up.railway.app/health" | jq '.status'
+
+# Test frontend API
+curl -X POST "https://soccer-scout-ui.vercel.app/api/query" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Compare Haaland vs Mbappé"}' | jq '.data.response_text'
+
+# Check Vercel deployment status
+npx vercel inspect https://soccer-scout-ui.vercel.app
+```
+
+### 🔧 **Development Workflow for Future Changes**
+1. **Local Testing**: Always test API responses locally first
+2. **Response Structure**: Verify `{ data: { response_text } }` format from backend
+3. **Error Handling**: Let real errors show, don't mask with fallbacks
+4. **Deployment**: Use `npx vercel --prod --force` for immediate deployment
+5. **Verification**: Test main domain `soccer-scout-ui.vercel.app` after deployment
+
+**Previous Focus**: Phase 5 Complete - World.org-inspired UI transformation delivered
 
 ## 🎉 **PROJECT STATUS: PRODUCTION-READY AI SOCCER SCOUT WITH WORLD.ORG AESTHETIC**
 
