@@ -1,16 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
-      },
-    },
-  },
+  // Remove experimental turbo config for Vercel compatibility
   images: {
     domains: ['localhost'],
   },
@@ -22,6 +13,8 @@ const nextConfig: NextConfig = {
     });
     return config;
   },
+  // Remove output for Vercel compatibility
+  // output: 'standalone',
 };
 
 export default nextConfig;

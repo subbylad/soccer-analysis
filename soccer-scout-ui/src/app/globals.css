@@ -65,48 +65,94 @@ body {
 
 /* Focus styles */
 .focus-visible {
-  @apply outline-none ring-1 ring-black ring-offset-2;
+  outline: none;
+  box-shadow: 0 0 0 1px #000000, 0 0 0 3px rgba(0, 0, 0, 0.1);
 }
 
 /* World.org typography styles */
 .world-text-title {
-  @apply font-display text-chat-title font-semibold text-world-text-primary tracking-tight;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: #000000;
+  letter-spacing: -0.025em;
 }
 
 .world-text-body {
-  @apply font-display text-chat-message text-world-text-primary leading-relaxed;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 1rem;
+  color: #000000;
+  line-height: 1.6;
 }
 
 .world-text-meta {
-  @apply font-display text-chat-meta text-world-text-secondary;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 0.875rem;
+  color: #666666;
 }
 
 /* World.org layout styles */
 .world-layout-grid {
-  @apply max-w-4xl mx-auto px-6;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 .world-card {
-  @apply bg-world-bg-card border border-world-border rounded-lg p-6 hover:shadow-world-subtle transition-all duration-300;
+  background-color: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.world-card:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .world-button {
-  @apply bg-world-accent text-white px-4 py-2 rounded font-display font-medium hover:opacity-60 transition-opacity duration-300;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-weight: 500;
+  transition: opacity 0.3s ease;
+}
+
+.world-button:hover {
+  opacity: 0.6;
 }
 
 .world-input {
-  @apply bg-world-bg-card border border-world-border rounded-lg px-4 py-3 font-display text-chat-input text-world-text-primary focus:ring-1 focus:ring-black focus:border-black transition-all duration-300;
+  background-color: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-size: 1.125rem;
+  color: #000000;
+  transition: all 0.3s ease;
+}
+
+.world-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 /* Chat-specific world.org styles */
 .world-chat-container {
-  @apply min-h-screen bg-world-bg-secondary;
+  min-height: 100vh;
+  background-color: #f8f8f8;
 }
 
 .world-message-user {
-  @apply bg-world-accent text-white;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 .world-message-assistant {
-  @apply bg-world-bg-card text-world-text-primary border border-world-border;
+  background-color: #ffffff;
+  color: #000000;
+  border: 1px solid #e5e5e5;
 }

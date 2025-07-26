@@ -8,7 +8,34 @@ export const useChat = () => {
 
   const queryMutation = useMutation({
     mutationFn: async (query: string): Promise<QueryResponse> => {
-      return api.query(query);
+      try {
+        return await api.query(query);
+      } catch (error) {
+        // Fallback response when API is not available (e.g., in Vercel deployment)
+        console.warn('API not available, using fallback response:', error);
+        return {
+          response_text: `Thank you for trying Soccer Scout AI! 
+
+I'm a demonstration of the world.org-inspired minimal design transformation. In a full deployment, I would connect to our Flask backend API to provide:
+
+• Player comparisons and analysis
+• Tactical scouting insights  
+• GPT-4 enhanced tactical recommendations
+• Young player prospect identification
+
+To see the full functionality, run the application locally with both the Next.js frontend and Flask backend servers.
+
+**Sample queries I can handle:**
+- "Compare Haaland vs Mbappé"
+- "Who can play alongside Kobbie Mainoo in Ligue 1?"
+- "Find young midfielders under 21"
+- "Best alternatives to Rodri"
+
+The interface you're seeing showcases the new world.org-inspired minimal aesthetic - clean typography, generous whitespace, and professional styling.`,
+          query_type: 'demo',
+          players: [],
+        };
+      }
     },
     onMutate: (query) => {
       // Add user message immediately

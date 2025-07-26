@@ -19,11 +19,11 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://soccer-scout-ai.vercel.app"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "http://localhost:3000",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://soccer-scout-ai.vercel.app",
     title: "Soccer Scout AI - AI-Powered Football Analysis",
     description: "Advanced AI-powered soccer scouting and player analysis tool with GPT-4 intelligence.",
     siteName: "Soccer Scout AI",

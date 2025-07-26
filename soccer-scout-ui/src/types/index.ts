@@ -74,7 +74,7 @@ export interface ChatMessage {
   analysis?: TacticalAnalysis;
   comparison?: ComparisonAnalysis;
   scouting_report?: ScoutingReport;
-  query_type?: 'comparison' | 'search' | 'tactical' | 'scouting' | 'general';
+  query_type?: 'comparison' | 'search' | 'tactical' | 'scouting' | 'general' | 'demo';
 }
 
 export interface TacticalAnalysis {
@@ -118,7 +118,7 @@ export interface QueryResponse {
   analysis?: TacticalAnalysis;
   comparison?: ComparisonAnalysis;
   scouting_report?: ScoutingReport;
-  query_type: 'comparison' | 'search' | 'tactical' | 'scouting' | 'general';
+  query_type: 'comparison' | 'search' | 'tactical' | 'scouting' | 'general' | 'demo';
   processing_time?: number;
   data_source?: string;
   suggestions?: string[];
