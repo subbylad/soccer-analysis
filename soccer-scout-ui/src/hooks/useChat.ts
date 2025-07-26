@@ -33,30 +33,9 @@ export const useChat = () => {
         
         return data;
       } catch (error) {
-        // Fallback response when API is not available (e.g., in Vercel deployment)
-        console.warn('API not available, using fallback response:', error);
-        return {
-          response_text: `Thank you for trying Soccer Scout AI! 
-
-I'm a demonstration of the world.org-inspired minimal design transformation. In a full deployment, I would connect to our Flask backend API to provide:
-
-• Player comparisons and analysis
-• Tactical scouting insights  
-• GPT-4 enhanced tactical recommendations
-• Young player prospect identification
-
-To see the full functionality, run the application locally with both the Next.js frontend and Flask backend servers.
-
-**Sample queries I can handle:**
-- "Compare Haaland vs Mbappé"
-- "Who can play alongside Kobbie Mainoo in Ligue 1?"
-- "Find young midfielders under 21"
-- "Best alternatives to Rodri"
-
-The interface you're seeing showcases the new world.org-inspired minimal aesthetic - clean typography, generous whitespace, and professional styling.`,
-          query_type: 'demo',
-          players: [],
-        };
+        // Log the actual error and throw it instead of falling back to demo
+        console.error('API query failed:', error);
+        throw error;
       }
     },
     onMutate: (query) => {
@@ -104,7 +83,18 @@ The interface you're seeing showcases the new world.org-inspired minimal aesthet
       
       if (loadingMessage) {
         updateMessage(loadingMessage.id, {
-          content: `I'm sorry, I encountered an error processing your query: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          content: `❌ **Connection Error**
+
+Sorry, I couldn't process your query "${query}" due to a connection issue.
+
+**Possible causes:**
+• Network connectivity problem
+• Backend service temporarily unavailable
+• API response validation failed
+
+**Please try again in a moment.** If the issue persists, the backend may be temporarily down for maintenance.
+
+**Error details:** ${error instanceof Error ? error.message : 'Unknown error'}`,
           isLoading: false,
         });
       }
