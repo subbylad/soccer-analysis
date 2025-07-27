@@ -284,7 +284,7 @@ class SoccerAnalyticsAPI:
                 }
             else:
                 # Traditional system summary
-                summary = self.analysis_router.analyzer.data_summary
+                summary = self.analysis_router.traditional_analyzer.data_summary
                 return {
                     "total_players": summary.get("total_players", 0),
                     "leagues": summary.get("leagues", []),
@@ -320,7 +320,7 @@ class SoccerAnalyticsAPI:
         
         try:
             # Check analysis router
-            data_summary = self.analysis_router.analyzer.data_summary
+            data_summary = self.analysis_router.traditional_analyzer.data_summary
             health["components"]["analysis_router"] = "healthy"
             health["data_loaded"] = data_summary.get("total_players", 0) > 0
         except Exception as e:
