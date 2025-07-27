@@ -141,6 +141,7 @@ class AnalysisResponse:
     response_type: ResponseType = ResponseType.PLAYER_LIST
     original_request: Optional[AnalysisRequest] = None
     execution_time: float = 0.0
+    error: Optional[str] = None  # Support for error messages
     
 @dataclass
 class PlayerListResponse(AnalysisResponse):
