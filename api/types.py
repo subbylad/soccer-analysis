@@ -41,6 +41,8 @@ class AnalysisRequest:
     original_query: str = ""
     confidence: float = 1.0  # How confident we are in the interpretation
     ai_enhanced: bool = False  # Support for AI-enhanced analysis
+    error: Optional[str] = None  # Support for error messages in requests
+    raw_query: Optional[str] = None  # Support for original raw query text
     
 @dataclass
 class PlayerSearchRequest(AnalysisRequest):
