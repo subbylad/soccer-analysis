@@ -12,7 +12,9 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from .query_processor import QueryProcessor
-from .analysis_router import AnalysisRouter  
+from .ai_query_processor import AIQueryProcessor  
+from .analysis_router import AnalysisRouter
+from .ai_analysis_router import AIAnalysisRouter  
 from .response_formatter import ResponseFormatter
 from .types import QueryContext, AnalysisRequest, AnalysisResponse
 
@@ -24,11 +26,14 @@ logger = logging.getLogger(__name__)
 class APIConfig:
     """Configuration for the Soccer Analytics API."""
     data_dir: str = "data/clean"
+    comprehensive_data_dir: str = "data/comprehensive"  # For AI engine
     cache_enabled: bool = True
     max_cache_size: int = 100
     log_level: str = "INFO"
     default_min_minutes: int = 500
     openai_api_key: Optional[str] = None  # For GPT-4 enhanced query processing
+    enable_ai_engine: bool = True  # Enable revolutionary AI analysis engine
+    ai_first: bool = True  # Use AI-native processing when available
 
 class SoccerAnalyticsAPI:
     """
@@ -58,11 +63,30 @@ class SoccerAnalyticsAPI:
         
         # Initialize components
         try:
-            logger.info("Initializing Soccer Analytics API...")
-            # Pass OpenAI API key to both QueryProcessor and AnalysisRouter for GPT-4 enhancement
+            logger.info("Initializing Revolutionary Soccer Analytics API with AI Engine...")
             openai_key = getattr(self.config, 'openai_api_key', None)
-            self.query_processor = QueryProcessor(openai_api_key=openai_key)
-            self.analysis_router = AnalysisRouter(data_dir=self.config.data_dir, openai_api_key=openai_key)
+            enable_ai = getattr(self.config, 'enable_ai_engine', True)
+            ai_first = getattr(self.config, 'ai_first', True)
+            
+            # Initialize AI-native components when enabled
+            if ai_first and enable_ai and openai_key:
+                logger.info("Initializing AI-first architecture...")
+                self.query_processor = AIQueryProcessor(openai_api_key=openai_key, enable_ai=True)
+                self.analysis_router = AIAnalysisRouter(
+                    data_dir=self.config.data_dir,
+                    comprehensive_data_dir=getattr(self.config, 'comprehensive_data_dir', 'data/comprehensive'),
+                    openai_api_key=openai_key,
+                    enable_ai_engine=True
+                )
+                self.ai_native = True
+                logger.info("AI-native components initialized successfully")
+            else:
+                logger.info("Initializing traditional components with AI enhancement...")
+                self.query_processor = QueryProcessor(openai_api_key=openai_key)
+                self.analysis_router = AnalysisRouter(data_dir=self.config.data_dir, openai_api_key=openai_key)
+                self.ai_native = False
+                logger.info("Traditional components with AI enhancement initialized")
+            
             self.response_formatter = ResponseFormatter()
             
             # Simple query history
@@ -188,18 +212,34 @@ class SoccerAnalyticsAPI:
         Returns:
             List of suggested queries
         """
-        base_suggestions = [
-            "Compare Haaland vs Mbappé",
-            "Find young midfielders under 21",
-            "Top scorers in Premier League", 
-            "Best defensive midfielders",
-            "Who can play alongside Kobbie Mainoo?",
-            "Find players similar to Pedri",
-            "Young prospects under 23",
-            "Alternative to Rodri in Ligue 1",
-            "Top assists in Serie A",
-            "Defenders who complement Varane's style"
-        ]
+        # Enhanced suggestions for AI-native system
+        if self.ai_native:
+            ai_suggestions = [
+                "Find a creative midfielder like Pedri but with better defensive work rate",
+                "Who can play alongside Kobbie Mainoo in Ligue 1's tactical system?",
+                "Compare Haaland vs Mbappé across all performance dimensions",
+                "Find young wingers under 21 with pace and creativity for counter-attacking football",
+                "Alternative to Rodri for Manchester City's possession-based system",
+                "Defenders who can contribute in attacking phases like Timber",
+                "Find a box-to-box midfielder similar to Bellingham for Real Madrid",
+                "Young prospects in Serie A with high tactical intelligence",
+                "Left-backs who can play inverted role in Pep's system",
+                "Find strikers with hold-up play for a 4-2-3-1 formation"
+            ]
+            base_suggestions = ai_suggestions
+        else:
+            base_suggestions = [
+                "Compare Haaland vs Mbappé",
+                "Find young midfielders under 21",
+                "Top scorers in Premier League", 
+                "Best defensive midfielders",
+                "Who can play alongside Kobbie Mainoo?",
+                "Find players similar to Pedri",
+                "Young prospects under 23",
+                "Alternative to Rodri in Ligue 1",
+                "Top assists in Serie A",
+                "Defenders who complement Varane's style"
+            ]
         
         # Filter suggestions based on partial query
         if partial_query:
@@ -229,14 +269,30 @@ class SoccerAnalyticsAPI:
             Dictionary with data statistics
         """
         try:
-            summary = self.analysis_router.analyzer.data_summary
-            return {
-                "total_players": summary.get("total_players", 0),
-                "leagues": summary.get("leagues", []),
-                "age_range": summary.get("age_range", [16, 40]),
-                "data_shape": summary.get("data_shape", [0, 0]),
-                "last_updated": "2024/25 season"
-            }
+            if self.ai_native:
+                # Get AI engine database summary
+                summary = self.analysis_router.get_ai_database_summary()
+                return {
+                    "total_players": summary.get("total_players", 0),
+                    "total_metrics": summary.get("total_metrics", 0),
+                    "leagues": summary.get("leagues", []),
+                    "positions": summary.get("positions", []),
+                    "ai_enabled": summary.get("ai_enabled", False),
+                    "data_dimensions": summary.get("data_dimensions", {}),
+                    "last_updated": "2024/25 season",
+                    "system_type": "AI-Native Analysis Engine"
+                }
+            else:
+                # Traditional system summary
+                summary = self.analysis_router.analyzer.data_summary
+                return {
+                    "total_players": summary.get("total_players", 0),
+                    "leagues": summary.get("leagues", []),
+                    "age_range": summary.get("age_range", [16, 40]),
+                    "data_shape": summary.get("data_shape", [0, 0]),
+                    "last_updated": "2024/25 season",
+                    "system_type": "Traditional Analysis with AI Enhancement"
+                }
         except Exception as e:
             logger.error(f"Failed to get data summary: {e}")
             return {"error": str(e)}
@@ -280,6 +336,128 @@ class SoccerAnalyticsAPI:
             health["status"] = "degraded"
         
         return health
+    
+    def get_ai_status(self) -> Dict[str, Any]:
+        """
+        Get detailed AI system status and capabilities.
+        
+        Returns:
+            Dictionary with AI system information
+        """
+        ai_status = {
+            "ai_native": self.ai_native,
+            "timestamp": time.time()
+        }
+        
+        if self.ai_native:
+            # Get detailed AI engine status
+            try:
+                engine_status = self.analysis_router.get_engine_status()
+                performance_stats = self.analysis_router.get_performance_stats()
+                
+                ai_status.update({
+                    "system_type": "Revolutionary AI-Native Analysis Engine",
+                    "capabilities": [
+                        "Multi-dimensional tactical reasoning",
+                        "Natural language query understanding", 
+                        "GPT-4 powered insights",
+                        "Comprehensive player profiling",
+                        "Formation and system analysis",
+                        "Playing style compatibility"
+                    ],
+                    "engine_status": engine_status,
+                    "performance": performance_stats,
+                    "query_processing": "AI-first with GPT-4 understanding"
+                })
+                
+                # Get query processor stats if available
+                if hasattr(self.query_processor, 'get_processing_stats'):
+                    ai_status["query_stats"] = self.query_processor.get_processing_stats()
+                    
+            except Exception as e:
+                ai_status["error"] = f"Failed to get AI status: {e}"
+        else:
+            ai_status.update({
+                "system_type": "Traditional Analysis with AI Enhancement",
+                "capabilities": [
+                    "Pattern-based query processing",
+                    "Statistical player analysis",
+                    "GPT-4 enhanced responses",
+                    "Basic tactical analysis"
+                ],
+                "query_processing": "Pattern matching with AI enhancement"
+            })
+        
+        return ai_status
+    
+    def get_system_capabilities(self) -> Dict[str, Any]:
+        """
+        Get comprehensive system capabilities based on current configuration.
+        
+        Returns:
+            Dictionary describing system capabilities
+        """
+        capabilities = {
+            "timestamp": time.time(),
+            "system_version": "2.0 - Revolutionary AI-Native",
+            "ai_native": self.ai_native
+        }
+        
+        if self.ai_native:
+            capabilities.update({
+                "analysis_types": [
+                    "Multi-dimensional player search with tactical context",
+                    "Sophisticated player comparison across all metrics",
+                    "Formation and system compatibility analysis", 
+                    "Playing style and tactical role matching",
+                    "Market value and transfer feasibility assessment",
+                    "Youth prospect evaluation with potential scoring",
+                    "Team composition and partnership analysis"
+                ],
+                "query_understanding": [
+                    "Natural language processing with GPT-4",
+                    "Tactical concept recognition",
+                    "Entity extraction (players, teams, formations)",
+                    "Intent classification with confidence scoring",
+                    "Context-aware query enhancement"
+                ],
+                "data_sources": [
+                    "FBref comprehensive stats (200+ metrics)",
+                    "Standard performance data",
+                    "Advanced tactical metrics",
+                    "Possession and defensive data",
+                    "Goalkeeper specific metrics",
+                    "AI-generated player insights"
+                ],
+                "intelligence_features": [
+                    "GPT-4 powered tactical reasoning",
+                    "Multi-dimensional player profiling",
+                    "Automated scout report generation",
+                    "Playing style analysis",
+                    "Formation fit assessment",
+                    "Alternative player suggestions"
+                ]
+            })
+        else:
+            capabilities.update({
+                "analysis_types": [
+                    "Player search by position and criteria",
+                    "Basic player comparison",
+                    "Statistical analysis and ranking",
+                    "Young prospect identification"
+                ],
+                "query_understanding": [
+                    "Pattern-based query matching",
+                    "Basic entity extraction",
+                    "GPT-4 enhanced responses"
+                ],
+                "data_sources": [
+                    "FBref standard data (100+ metrics)",
+                    "Basic performance statistics"
+                ]
+            })
+        
+        return capabilities
     
     def _add_to_history(self, query: str, response: Dict[str, Any]) -> None:
         """Add query and response to history."""
