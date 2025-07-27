@@ -142,6 +142,7 @@ class AnalysisResponse:
     original_request: Optional[AnalysisRequest] = None
     execution_time: float = 0.0
     error: Optional[str] = None  # Support for error messages
+    analysis_type: Optional[str] = None  # Support for analysis type classification
     
 @dataclass
 class PlayerListResponse(AnalysisResponse):
