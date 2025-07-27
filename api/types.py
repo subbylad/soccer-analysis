@@ -40,6 +40,7 @@ class AnalysisRequest:
     query_type: QueryType = QueryType.UNKNOWN
     original_query: str = ""
     confidence: float = 1.0  # How confident we are in the interpretation
+    ai_enhanced: bool = False  # Support for AI-enhanced analysis
     
 @dataclass
 class PlayerSearchRequest(AnalysisRequest):
