@@ -143,6 +143,12 @@ class AnalysisResponse:
     execution_time: float = 0.0
     error: Optional[str] = None  # Support for error messages
     analysis_type: Optional[str] = None  # Support for analysis type classification
+    data: Any = None  # Support for general data payload
+    summary: str = ""  # Support for summary text
+    total_found: int = 0  # Support for result count
+    ai_enhanced: bool = False  # Support for AI-enhanced analysis flag
+    confidence: float = 0.0  # Support for confidence scoring
+    ai_insights: str = ""  # Support for AI-generated insights
     
 @dataclass
 class PlayerListResponse(AnalysisResponse):
