@@ -193,24 +193,92 @@ class AIScoutEngine:
         - Infer tactical context from query language
         """
         
-        try:
-            response = self.openai_client.chat.completions.create(
-                model=self.config.model,
-                messages=[
-                    {"role": "system", "content": "You are a precise soccer query parser. Return only valid JSON with exact field names as specified."},
-                    {"role": "user", "content": parsing_prompt}
-                ],
-                temperature=0.1,
-                max_tokens=800
-            )
-            
-            parsed_params = json.loads(response.choices[0].message.content)
-            logger.info(f"✅ AI Parser Result: {parsed_params}")
-            return parsed_params
-            
-        except Exception as e:
-            logger.error(f"❌ AI parsing failed: {e}")
-            return {"error": "Failed to parse query", "fallback": True}
+        # Robust OpenAI call with retry logic
+        for attempt in range(3):  # 3 retry attempts
+            try:
+                logger.info(f"🧠 Attempting query parsing (attempt {attempt + 1}/3)")
+                
+                response = self.openai_client.chat.completions.create(
+                    model=self.config.model,
+                    messages=[
+                        {"role": "system", "content": "You are a precise soccer query parser. Return only valid JSON with exact field names as specified."},
+                        {"role": "user", "content": parsing_prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=800,
+                    timeout=20  # 20 second timeout for parsing
+                )
+                
+                # Validate response
+                if not response.choices or not response.choices[0].message.content:
+                    raise ValueError("Empty response from OpenAI")
+                
+                parsed_params = json.loads(response.choices[0].message.content)
+                logger.info(f"✅ AI Parser Result: {parsed_params}")
+                return parsed_params
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️ JSON parsing failed (attempt {attempt + 1}): {e}")
+                if attempt == 2:  # Last attempt
+                    return self._fallback_query_parsing(query)
+                time.sleep(1)  # Wait before retry
+                
+            except Exception as e:
+                logger.warning(f"⚠️ OpenAI parsing failed (attempt {attempt + 1}): {e}")
+                if attempt == 2:  # Last attempt
+                    return self._fallback_query_parsing(query)
+                time.sleep(1)  # Wait before retry
+        
+        # Should never reach here, but just in case
+        return self._fallback_query_parsing(query)
+    
+    def _fallback_query_parsing(self, query: str) -> Dict:
+        """
+        Generate fallback query parsing when OpenAI fails
+        Uses basic pattern matching and heuristics
+        """
+        logger.info("🔄 Generating fallback query parsing")
+        
+        query_lower = query.lower()
+        
+        # Basic position detection
+        positions = []
+        if any(word in query_lower for word in ['midfielder', 'midfield', 'cm', 'cdm', 'cam']):
+            positions.append('Midfielder')
+        if any(word in query_lower for word in ['forward', 'striker', 'cf', 'winger', 'lw', 'rw']):
+            positions.append('Forward')
+        if any(word in query_lower for word in ['defender', 'defence', 'cb', 'lb', 'rb', 'fullback']):
+            positions.append('Defender')
+        if any(word in query_lower for word in ['goalkeeper', 'keeper', 'gk']):
+            positions.append('Goalkeeper')
+        
+        # Basic age detection
+        age_constraints = {}
+        if 'young' in query_lower or 'under' in query_lower:
+            age_constraints = {"min": 16, "max": 25}
+        
+        # Basic league detection
+        leagues = []
+        league_map = {
+            'premier league': 'ENG-Premier League',
+            'la liga': 'ESP-La Liga',
+            'serie a': 'ITA-Serie A', 
+            'bundesliga': 'GER-Bundesliga',
+            'ligue 1': 'FRA-Ligue 1'
+        }
+        for league_name, league_code in league_map.items():
+            if league_name in query_lower:
+                leagues.append(league_code)
+        
+        return {
+            "analysis_type": "player_search",
+            "search_intent": "general_search",
+            "positions": positions if positions else ["Midfielder"],  # Default to midfielder
+            "leagues": leagues,
+            "age_constraints": age_constraints,
+            "tactical_requirements": {},
+            "fallback_parsing": True
+        }
     
     # STEP 2: PYTHON ANALYSIS - High-performance database operations
     def execute_database_analysis(self, parsed_params: Dict) -> pd.DataFrame:
@@ -468,24 +536,88 @@ class AIScoutEngine:
         5. Realistic assessment of strengths and limitations
         """
         
-        try:
-            response = self.openai_client.chat.completions.create(
-                model=self.config.model,
-                messages=[
-                    {"role": "system", "content": "You are an elite soccer scout providing professional tactical analysis. Focus on actionable insights with supporting data."},
-                    {"role": "user", "content": tactical_prompt}
-                ],
-                temperature=0.3,  # Balance creativity with consistency
-                max_tokens=2000
-            )
-            
-            tactical_analysis = json.loads(response.choices[0].message.content)
-            logger.info("✅ Professional tactical intelligence generated")
-            return tactical_analysis
-            
-        except Exception as e:
-            logger.error(f"❌ Tactical analysis failed: {e}")
-            return {"error": "Failed to generate tactical analysis", "details": str(e)}
+        # Robust OpenAI call with retry logic
+        for attempt in range(3):  # 3 retry attempts
+            try:
+                logger.info(f"🧠 Attempting tactical analysis (attempt {attempt + 1}/3)")
+                
+                response = self.openai_client.chat.completions.create(
+                    model=self.config.model,
+                    messages=[
+                        {"role": "system", "content": "You are an elite soccer scout providing professional tactical analysis. Focus on actionable insights with supporting data."},
+                        {"role": "user", "content": tactical_prompt}
+                    ],
+                    temperature=0.3,  # Balance creativity with consistency
+                    max_tokens=2000,
+                    timeout=30  # 30 second timeout
+                )
+                
+                # Validate response
+                if not response.choices or not response.choices[0].message.content:
+                    raise ValueError("Empty response from OpenAI")
+                
+                tactical_analysis = json.loads(response.choices[0].message.content)
+                logger.info("✅ Professional tactical intelligence generated")
+                return tactical_analysis
+                
+            except json.JSONDecodeError as e:
+                logger.warning(f"⚠️ JSON parsing failed (attempt {attempt + 1}): {e}")
+                if attempt == 2:  # Last attempt
+                    return self._fallback_tactical_analysis(query, candidates, parsed_params)
+                time.sleep(2)  # Wait before retry
+                
+            except Exception as e:
+                logger.warning(f"⚠️ OpenAI tactical analysis failed (attempt {attempt + 1}): {e}")
+                if attempt == 2:  # Last attempt
+                    return self._fallback_tactical_analysis(query, candidates, parsed_params)
+                time.sleep(2)  # Wait before retry
+        
+        # Should never reach here, but just in case
+        return self._fallback_tactical_analysis(query, candidates, parsed_params)
+    
+    def _fallback_tactical_analysis(self, query: str, candidates: pd.DataFrame, parsed_params: Dict) -> Dict:
+        """
+        Generate fallback tactical analysis when OpenAI fails
+        Uses data-driven insights without AI reasoning
+        """
+        logger.info("🔄 Generating fallback tactical analysis")
+        
+        top_candidates = candidates.head(3)
+        
+        recommendations = []
+        for _, player in top_candidates.iterrows():
+            recommendations.append({
+                "player_name": player.get("player", "Unknown"),
+                "current_team": player.get("team", "Unknown"), 
+                "league": player.get("league", "Unknown"),
+                "tactical_reasoning": f"Strong performer with {player.get('goals_per_90', 0):.2f} goals per 90 and {player.get('assists_per_90', 0):.2f} assists per 90",
+                "key_strengths": ["Statistical Performance", "League Experience"],
+                "tactical_role": player.get("position", "Unknown"),
+                "confidence_score": 0.75,
+                "supporting_metrics": {
+                    "goals_per_90": round(player.get("goals_per_90", 0), 2),
+                    "assists_per_90": round(player.get("assists_per_90", 0), 2),
+                    "performance_rating": round(player.get("performance_rating", 0), 2)
+                },
+                "potential_concerns": "Limited AI analysis available - recommend further scouting"
+            })
+        
+        return {
+            "executive_summary": f"Based on statistical analysis, {len(candidates)} candidates were found matching your criteria. The top performers show strong metrics across key areas.",
+            "top_recommendations": recommendations,
+            "tactical_analysis": {
+                "formation_compatibility": "Analysis based on statistical performance indicators",
+                "playing_style_match": "Players selected based on position and performance metrics",
+                "partnership_dynamics": "Requires detailed tactical assessment"
+            },
+            "alternative_considerations": [],
+            "professional_insights": {
+                "market_context": "Statistical analysis completed - detailed scouting recommended",
+                "development_potential": "Performance metrics suggest positive trajectory",
+                "tactical_versatility": "Position-based analysis completed"
+            },
+            "scout_recommendation": f"Top {min(3, len(candidates))} candidates identified based on performance data. Recommend detailed tactical analysis for final evaluation."
+        }
     
     # MAIN ANALYSIS METHOD - Revolutionary 3-step pipeline
     def analyze_query(self, query: str) -> Dict:

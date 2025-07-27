@@ -157,7 +157,15 @@ class RevolutionaryAIAPI:
         executive_summary = tactical_intel.get("executive_summary", "")
         scout_rec = tactical_intel.get("scout_recommendation", "")
         
-        response_text = f"{executive_summary}\n\n{scout_rec}" if scout_rec else executive_summary
+        # Enhanced response text with fallback handling
+        if scout_rec:
+            response_text = f"{executive_summary}\n\n{scout_rec}"
+        else:
+            response_text = executive_summary or "Analysis completed successfully. Please see detailed recommendations below."
+        
+        # Ensure response_text is never empty
+        if not response_text.strip():
+            response_text = f"Found {len(recommendations)} player recommendations matching your query."
         
         return {
             "success": True,

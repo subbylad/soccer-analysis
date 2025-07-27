@@ -17,6 +17,7 @@ from flask_cors import CORS
 from api.ai_native_api import create_revolutionary_api
 import os
 import logging
+import time
 from datetime import datetime
 import traceback
 
@@ -192,15 +193,49 @@ def process_revolutionary_query():
         
         logger.info(f"🧠 Processing Revolutionary Query: '{query_text}'")
         
-        # Execute revolutionary AI analysis
-        result = revolutionary_api.query(query_text)
+        # Execute revolutionary AI analysis with timeout handling
+        start_time = time.time()
+        try:
+            result = revolutionary_api.query(query_text)
+            execution_time = time.time() - start_time
+            
+            # Ensure response_text field exists for frontend compatibility
+            if result.get("success") and "response_text" not in result:
+                result["response_text"] = result.get("summary", "Analysis completed successfully.")
+            
+        except Exception as query_exception:
+            execution_time = time.time() - start_time
+            logger.error(f"❌ Query execution failed after {execution_time:.1f}s: {query_exception}")
+            
+            # Return structured error response with frontend compatibility
+            return jsonify({
+                "success": False,
+                "error": f"Analysis system error: {str(query_exception)}", 
+                "error_type": "query_execution_error",
+                "execution_time": execution_time,
+                "response_text": "Analysis could not be completed due to a system error. Please try again.",
+                "recommendations": [],
+                "summary": "",
+                "suggestions": [
+                    "Try rephrasing your query",
+                    "Check if the system is temporarily overloaded",
+                    "Contact support if the issue persists"
+                ]
+            }), 500
         
         # Return results
         if result.get("success"):
-            logger.info(f"✅ Revolutionary analysis completed in {result.get('execution_time', 0)}s")
+            logger.info(f"✅ Revolutionary analysis completed in {result.get('execution_time', execution_time):.1f}s")
             return jsonify(result)
         else:
             logger.warning(f"⚠️ Analysis failed: {result.get('error', 'Unknown error')}")
+            # Ensure error responses have frontend compatibility fields
+            if "response_text" not in result:
+                result["response_text"] = result.get("error", "Analysis failed")
+            if "recommendations" not in result:
+                result["recommendations"] = []
+            if "summary" not in result:
+                result["summary"] = ""
             return jsonify(result), 400
         
     except Exception as e:
