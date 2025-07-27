@@ -153,11 +153,20 @@ class RevolutionaryAIAPI:
                 "reasoning": alt.get("reasoning", "")
             })
         
+        # Create response_text for frontend compatibility
+        executive_summary = tactical_intel.get("executive_summary", "")
+        scout_rec = tactical_intel.get("scout_recommendation", "")
+        
+        response_text = f"{executive_summary}\n\n{scout_rec}" if scout_rec else executive_summary
+        
         return {
             "success": True,
             "type": "ai_native_revolutionary",
             "query": ai_result.get("query", ""),
             "execution_time": ai_result.get("execution_time", 0),
+            
+            # Frontend compatibility
+            "response_text": response_text,
             
             # Main content
             "summary": tactical_intel.get("executive_summary", ""),
