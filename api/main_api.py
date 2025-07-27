@@ -68,8 +68,8 @@ class SoccerAnalyticsAPI:
             enable_ai = getattr(self.config, 'enable_ai_engine', True)
             ai_first = getattr(self.config, 'ai_first', True)
             
-            # Initialize AI-native components when enabled
-            if ai_first and enable_ai and openai_key:
+            # Always use AI-native architecture for better error handling and fallback
+            if ai_first and enable_ai:
                 logger.info("Initializing AI-first architecture...")
                 self.query_processor = AIQueryProcessor(openai_api_key=openai_key, enable_ai=True)
                 self.analysis_router = AIAnalysisRouter(
