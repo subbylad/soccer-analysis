@@ -1,20 +1,15 @@
 """
-Soccer Analytics API
+Revolutionary AI-Native Soccer Analytics API
 
-A flexible abstraction layer that provides natural language querying
-capabilities over soccer data analysis functions.
+Pure AI-first architecture for professional-grade soccer intelligence.
+Uses GPT-4 powered 3-step pipeline: Parser → Analysis → Reasoning
 """
 
-from .main_api import SoccerAnalyticsAPI
-from .query_processor import QueryProcessor
-from .analysis_router import AnalysisRouter
-from .response_formatter import ResponseFormatter
+from .ai_native_api import RevolutionaryAIAPI, create_revolutionary_api
 
 __all__ = [
-    'SoccerAnalyticsAPI',
-    'QueryProcessor', 
-    'AnalysisRouter',
-    'ResponseFormatter'
+    'RevolutionaryAIAPI',
+    'create_revolutionary_api'
 ]
 
-__version__ = '1.0.0'
+__version__ = '2.0.0-revolutionary'
