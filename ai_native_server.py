@@ -256,7 +256,7 @@ def api_information():
     """API information and documentation"""
     return jsonify({
         "name": "Revolutionary AI-Native Soccer Scout",
-        "version": "2.0.1-revolutionary-deployed",
+        "version": "2.0.2-revolutionary-deployment-fix",
         "description": "Professional-grade soccer intelligence powered by GPT-4",
         "architecture": "3-step AI pipeline: Parser → Analysis → Reasoning",
         
