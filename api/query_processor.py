@@ -36,9 +36,10 @@ class PatternMatcher:
     
     def __init__(self):
         self.patterns = {
-            # Player search patterns
-            r"(?:find|search|show|get)\s+(.+?)(?:\s|$)": self._create_player_search,
-            r"(?:who is|tell me about)\s+(.+?)(?:\s|$)": self._create_player_search,
+            # Position-specific patterns (must come first to avoid being caught by general patterns)
+            r"(?:find|search|show|get)\s+(midfielders|defenders|forwards|goalkeepers)(?:\s+in\s+(.+?))?(?:\s|$)": self._create_position_search,
+            r"(?:show|find|get)\s+(.+?)\s+(midfielders|defenders|forwards|goalkeepers)": self._create_position_search,
+            r"(midfielders|defenders|forwards|goalkeepers)\s+(?:in\s+(.+?))?(?:\s|$)": self._create_position_search,
             
             # Comparison patterns  
             r"compare\s+(.+?)\s+(?:vs|versus|against|and)\s+(.+?)(?:\s|$)": self._create_comparison,
@@ -54,9 +55,9 @@ class PatternMatcher:
             r"(?:best|top|leading)\s+(.+?)\s+(?:assists|assist providers)": self._create_top_assisters,
             r"(?:best|top|leading)\s+(.+?)(?:\s+in\s+(.+?))?(?:\s|$)": self._create_top_performers,
             
-            # Position-specific patterns
-            r"(?:show|find|get)\s+(.+?)\s+(midfielders|defenders|forwards|goalkeepers)": self._create_position_search,
-            r"(midfielders|defenders|forwards|goalkeepers)\s+(?:in\s+(.+?))?(?:\s|$)": self._create_position_search,
+            # Player search patterns (must come after more specific patterns)
+            r"(?:find|search|show|get)\s+(.+?)(?:\s|$)": self._create_player_search,
+            r"(?:who is|tell me about)\s+(.+?)(?:\s|$)": self._create_player_search,
         }
         
         # Common entity mappings
