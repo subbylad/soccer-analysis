@@ -43,6 +43,8 @@ class AnalysisRequest:
     ai_enhanced: bool = False  # Support for AI-enhanced analysis
     error: Optional[str] = None  # Support for error messages in requests
     raw_query: Optional[str] = None  # Support for original raw query text
+    extracted_entities: Optional[Dict[str, Any]] = None  # Support for extracted entities
+    tactical_context: Optional[str] = None  # Support for tactical context
     
 @dataclass
 class PlayerSearchRequest(AnalysisRequest):
@@ -116,6 +118,8 @@ class TacticalAnalysisRequest(AnalysisRequest):
     priority_stats: List[str] = field(default_factory=list)  # Key stats for analysis
     reasoning: str = ""  # GPT-4 reasoning for the request
     limit: int = 10
+    tactical_question: str = ""  # Support for tactical question text
+    analysis_focus: str = ""  # Support for analysis focus type
     
     def __post_init__(self):
         self.query_type = QueryType.TACTICAL_ANALYSIS
