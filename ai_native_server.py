@@ -389,6 +389,9 @@ def create_app(debug=False):
     
     return app
 
+# Configure app for production deployment (Railway/gunicorn)
+app = create_app(debug=False)
+
 if __name__ == '__main__':
     import argparse
     
@@ -399,8 +402,8 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    # Create the app
-    app = create_app(debug=args.debug)
+    # Configure app for local development
+    app.debug = args.debug
     
     print("🚀 Starting Revolutionary AI-Native Soccer Scout API")
     print("=" * 60)
