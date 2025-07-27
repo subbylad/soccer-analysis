@@ -49,17 +49,21 @@ except ImportError:
 
 app = Flask(__name__)
 
-# Configure CORS for React frontend
-CORS(app, origins=[
-    "http://localhost:3000",  # Next.js default
-    "http://localhost:3001",  # Alternative port
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-    # Production domains
-    "https://soccer-scout-ui.vercel.app",  # Original monorepo frontend
-    "https://soccer-scout-frontend.vercel.app",  # New frontend repository
-    "https://*.vercel.app",  # All Vercel preview deployments
-], supports_credentials=True)
+# Configure CORS for React frontend - explicit configuration for Railway
+CORS(app, 
+     origins=[
+         "http://localhost:3000",  # Next.js default
+         "http://localhost:3001",  # Alternative port
+         "http://127.0.0.1:3000",
+         "http://127.0.0.1:3001",
+         # Production domains
+         "https://soccer-scout-ui.vercel.app",  # Original monorepo frontend
+         "https://soccer-scout-frontend.vercel.app",  # New frontend repository
+         "https://*.vercel.app",  # All Vercel preview deployments
+     ],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True)
 
 # Global API instance
 soccer_api: Optional[SoccerAnalyticsAPI] = None
