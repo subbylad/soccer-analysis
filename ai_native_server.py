@@ -195,9 +195,47 @@ def process_revolutionary_query():
         
         # Execute revolutionary AI analysis with timeout handling
         start_time = time.time()
+        MAX_REQUEST_TIME = 50  # Railway timeout protection (60s total - 10s buffer)
+        
         try:
+            # Pre-check: If we're already close to timeout, return quick error
+            if time.time() - start_time > MAX_REQUEST_TIME:
+                logger.warning("⚠️ Request timeout detected before processing")
+                return jsonify({
+                    "success": False,
+                    "error": "Request processing timeout - try a simpler query",
+                    "error_type": "request_timeout",
+                    "execution_time": time.time() - start_time,
+                    "response_text": "Processing took too long. Please try a simpler query.",
+                    "recommendations": [],
+                    "summary": "",
+                    "suggestions": [
+                        "Try a more specific query",
+                        "Reduce the complexity of your request",
+                        "Ask about fewer players or attributes"
+                    ]
+                }), 408  # Request Timeout status
+            
             result = revolutionary_api.query(query_text)
             execution_time = time.time() - start_time
+            
+            # Post-processing timeout check
+            if execution_time > MAX_REQUEST_TIME:
+                logger.warning(f"⚠️ Query exceeded time limit: {execution_time:.1f}s")
+                return jsonify({
+                    "success": False,
+                    "error": f"Query processing took too long ({execution_time:.1f}s)",
+                    "error_type": "processing_timeout",
+                    "execution_time": execution_time,
+                    "response_text": "Query processing exceeded time limits. Please try a simpler request.",
+                    "recommendations": [],
+                    "summary": "",
+                    "suggestions": [
+                        "Try breaking down your query into smaller parts",
+                        "Be more specific about player names or positions",
+                        "Reduce the scope of your search"
+                    ]
+                }), 408
             
             # Ensure response_text field exists for frontend compatibility
             if result.get("success") and "response_text" not in result:
@@ -207,10 +245,28 @@ def process_revolutionary_query():
             execution_time = time.time() - start_time
             logger.error(f"❌ Query execution failed after {execution_time:.1f}s: {query_exception}")
             
+            # Handle specific timeout-related exceptions
+            error_message = str(query_exception)
+            if "timeout" in error_message.lower() or execution_time > MAX_REQUEST_TIME:
+                return jsonify({
+                    "success": False,
+                    "error": f"Query processing timeout after {execution_time:.1f}s",
+                    "error_type": "timeout_error",
+                    "execution_time": execution_time,
+                    "response_text": "The query took too long to process. Please try a simpler request.",
+                    "recommendations": [],
+                    "summary": "",
+                    "suggestions": [
+                        "Try a more specific query with fewer parameters",
+                        "Break complex queries into smaller parts",
+                        "Reduce the scope of your player search"
+                    ]
+                }), 408
+            
             # Return structured error response with frontend compatibility
             return jsonify({
                 "success": False,
-                "error": f"Analysis system error: {str(query_exception)}", 
+                "error": f"Analysis system error: {error_message}", 
                 "error_type": "query_execution_error",
                 "execution_time": execution_time,
                 "response_text": "Analysis could not be completed due to a system error. Please try again.",

@@ -194,7 +194,7 @@ class AIScoutEngine:
         """
         
         # Robust OpenAI call with retry logic
-        for attempt in range(3):  # 3 retry attempts
+        for attempt in range(2):  # Reduced retries for faster response
             try:
                 logger.info(f"🧠 Attempting query parsing (attempt {attempt + 1}/3)")
                 
@@ -206,7 +206,7 @@ class AIScoutEngine:
                     ],
                     temperature=0.1,
                     max_tokens=800,
-                    timeout=20  # 20 second timeout for parsing
+                    timeout=8  # Reduced timeout for Railway compatibility
                 )
                 
                 # Validate response
@@ -537,7 +537,7 @@ class AIScoutEngine:
         """
         
         # Robust OpenAI call with retry logic
-        for attempt in range(3):  # 3 retry attempts
+        for attempt in range(2):  # Reduced retries for faster response
             try:
                 logger.info(f"🧠 Attempting tactical analysis (attempt {attempt + 1}/3)")
                 
@@ -549,7 +549,7 @@ class AIScoutEngine:
                     ],
                     temperature=0.3,  # Balance creativity with consistency
                     max_tokens=2000,
-                    timeout=30  # 30 second timeout
+                    timeout=12  # Reduced timeout for Railway compatibility
                 )
                 
                 # Validate response
@@ -635,10 +635,18 @@ class AIScoutEngine:
         logger.info("=" * 80)
         
         start_time = time.time()
+        MAX_EXECUTION_TIME = 45  # Railway timeout safety margin (60s total - 15s for network/response)
         
         try:
             # STEP 1: AI Natural Language Parsing
             logger.info("STEP 1: AI NATURAL LANGUAGE PARSING")
+            if time.time() - start_time > MAX_EXECUTION_TIME:
+                return {
+                    "success": False,
+                    "error": "Query processing timeout - request too complex",
+                    "step_failed": "timeout_protection"
+                }
+            
             parsed_params = self.parse_natural_language_query(query)
             
             if parsed_params.get("error"):
@@ -650,6 +658,13 @@ class AIScoutEngine:
             
             # STEP 2: Python Database Analysis  
             logger.info("\nSTEP 2: PYTHON DATABASE ANALYSIS")
+            if time.time() - start_time > MAX_EXECUTION_TIME:
+                return {
+                    "success": False,
+                    "error": "Query processing timeout during database analysis",
+                    "step_failed": "timeout_protection"
+                }
+            
             candidates = self.execute_database_analysis(parsed_params)
             
             if len(candidates) == 0:
@@ -666,6 +681,13 @@ class AIScoutEngine:
             
             # STEP 3: AI Tactical Intelligence Generation
             logger.info("\nSTEP 3: AI TACTICAL INTELLIGENCE GENERATION")
+            if time.time() - start_time > MAX_EXECUTION_TIME - 15:  # Reserve 15s for GPT-4 reasoning
+                return {
+                    "success": False,
+                    "error": "Query processing timeout - skipping AI reasoning to ensure response",
+                    "step_failed": "timeout_protection"
+                }
+            
             tactical_analysis = self.generate_tactical_intelligence(query, candidates, parsed_params)
             
             if tactical_analysis.get("error"):
