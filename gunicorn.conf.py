@@ -13,7 +13,7 @@ backlog = 2048
 workers = 1  # Railway has memory limits, keep this low
 worker_class = "sync"
 worker_connections = 1000
-timeout = 120  # Increased timeout for Railway
+timeout = 55  # Railway timeout optimization - must be under 60s
 keepalive = 2
 
 # Restart workers after this many requests, with some randomness
