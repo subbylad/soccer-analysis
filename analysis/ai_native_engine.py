@@ -11,6 +11,7 @@ and comprehensive player data across 2,854 players with 50+ metrics each.
 import pandas as pd
 import numpy as np
 from openai import OpenAI
+import httpx
 import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -43,7 +44,21 @@ class AIScoutEngine:
     
     def __init__(self, config: AIAnalysisConfig):
         self.config = config
-        self.openai_client = OpenAI(api_key=config.openai_api_key)
+        
+        # Configure httpx timeout settings for SSL connection control
+        timeout_config = httpx.Timeout(
+            connect=10.0,      # SSL connection timeout
+            read=30.0,         # Response read timeout  
+            write=10.0,        # Request write timeout
+            pool=10.0          # Connection pool timeout
+        )
+        
+        # Initialize OpenAI client with proper timeout configuration
+        self.openai_client = OpenAI(
+            api_key=config.openai_api_key,
+            timeout=timeout_config
+        )
+        
         self.comprehensive_data = None
         self.player_profiles = {}
         self.query_cache = {}
