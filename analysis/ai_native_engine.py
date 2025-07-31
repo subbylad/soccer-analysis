@@ -477,74 +477,201 @@ class AIScoutEngine:
         return data
     
     def _create_dynamic_prompt(self, query: str, candidates: pd.DataFrame, parsed_params: Dict) -> str:
-        """Create dynamic GPT-4 prompts based on query complexity"""
+        """Create dynamic GPT-4 prompts based on query complexity and type"""
         analysis_type = parsed_params.get("analysis_type", "general")
+        search_intent = parsed_params.get("search_intent", "general_search")
+        reference_players = parsed_params.get("reference_players", [])
         num_candidates = len(candidates)
         
-        # Prepare candidate data (limit based on query type)
+        # Determine prompt complexity based on query type and data size
+        query_lower = query.lower()
+        
         if analysis_type == "comparison" and num_candidates <= 3:
-            # Simple comparison - just show the specific players
-            player_summaries = []
-            for _, player in candidates.iterrows():
-                summary = {
-                    "name": player.get("player", "Unknown"),
-                    "team": player.get("team", "Unknown"),
-                    "league": player.get("league", "Unknown"),
-                    "position": player.get("position", "Unknown"),
-                    "age": player.get("age", 0),
-                    "goals_per_90": round(player.get("goals_per_90", 0), 2),
-                    "assists_per_90": round(player.get("assists_per_90", 0), 2),
-                    "minutes": player.get("minutes", 0)
-                }
-                player_summaries.append(summary)
+            # SIMPLE COMPARISON: "Compare Haaland vs Mbappé"
+            prompt_type = "simple_comparison"
+            data_limit = num_candidates
+        elif search_intent == "find_alternatives" and reference_players:
+            # SIMILARITY SEARCH: "Find players similar to Baleba"
+            prompt_type = "similarity_search"  
+            data_limit = 3
+        elif any(keyword in query_lower for keyword in ['alongside', 'partner', 'complement', 'pair with']):
+            # PARTNERSHIP SEARCH: "Who can play alongside Kobbie Mainoo?"
+            prompt_type = "partnership_search"
+            data_limit = 5
+        elif any(keyword in query_lower for keyword in ['formation', 'system', 'tactical setup']):
+            # FORMATION ANALYSIS: "What formation suits Manchester City?"
+            prompt_type = "formation_analysis" 
+            data_limit = 3
+        elif any(keyword in query_lower for keyword in ['fastest', 'strongest', 'tallest', 'best passing', 'most accurate']):
+            # ATTRIBUTE SEARCH: "Who is the fastest player?" 
+            prompt_type = "attribute_search"
+            data_limit = 5
+        elif any(keyword in query_lower for keyword in ['backup', 'replacement', 'alternative to', 'substitute']):
+            # REPLACEMENT SEARCH: "Find a backup goalkeeper"
+            prompt_type = "replacement_search"
+            data_limit = 4
+        elif any(keyword in query_lower for keyword in ['young', 'under', 'over', 'age']):
+            # AGE-BASED SEARCH: "Find young midfielders under 21"
+            prompt_type = "age_search"
+            data_limit = 5
+        elif any(keyword in query_lower for keyword in ['best', 'top', 'find']) and not any(stat in query_lower for stat in ['passing', 'shooting', 'speed']):
+            # GENERAL SEARCH: "Find defensive midfielders in Premier League"  
+            prompt_type = "general_search"
+            data_limit = 5
+        else:
+            # COMPLEX QUERY: Everything else
+            prompt_type = "complex_analysis"
+            data_limit = 3
+        
+        # Prepare candidate data (limited based on prompt type)
+        player_summaries = []
+        for _, player in candidates.head(data_limit).iterrows():
+            summary = {
+                "name": player.get("player", "Unknown"),
+                "team": player.get("team", "Unknown"),
+                "league": player.get("league", "Unknown"),
+                "position": player.get("position", "Unknown"),
+                "age": player.get("age", 0),
+                "goals_per_90": round(player.get("goals_per_90", 0), 2),
+                "assists_per_90": round(player.get("assists_per_90", 0), 2),
+                "minutes": player.get("minutes", 0)
+            }
             
-            # Simple comparison prompt
+            # Add defensive stats for similarity searches
+            if prompt_type == "similarity_search":
+                summary.update({
+                    "defensive_work_rate": round(player.get("defensive_work_rate", 0), 2),
+                    "creativity_score": round(player.get("creativity_score", 0), 2),
+                    "performance_rating": round(player.get("performance_rating", 0), 2)
+                })
+            
+            player_summaries.append(summary)
+        
+        # Generate appropriate prompt based on type
+        if prompt_type == "simple_comparison":
             return f"""
-            You are a soccer analyst. Compare these players based on their data.
+            Compare these {len(player_summaries)} players based on their data.
             
             QUERY: "{query}"
-            PLAYERS DATA:
-            {json.dumps(player_summaries, indent=2)}
+            PLAYERS: {json.dumps(player_summaries, indent=2)}
             
-            Provide a brief comparison in JSON format:
+            Provide brief comparison in JSON:
             {{
-                "executive_summary": "Brief comparison highlighting key differences",
+                "executive_summary": "Key differences between the players",
                 "top_recommendations": [
                     {{
                         "player_name": "Player Name",
                         "current_team": "Team",
-                        "league": "League", 
-                        "tactical_reasoning": "Brief reason why this player stands out",
+                        "league": "League",
+                        "tactical_reasoning": "Why this player stands out",
                         "key_strengths": ["strength1", "strength2"],
                         "confidence_score": 0.8
                     }}
                 ],
-                "scout_recommendation": "Brief final recommendation"
+                "scout_recommendation": "Brief recommendation"
             }}
-            
-            Keep it concise and focus on the key differences between the players.
             """
-        else:
-            # For complex queries, use more detailed analysis (but still shorter than before)
-            player_summaries = []
-            for _, player in candidates.head(5).iterrows():  # Limit to top 5
-                summary = {
-                    "name": player.get("player", "Unknown"),
-                    "team": player.get("team", "Unknown"),
-                    "league": player.get("league", "Unknown"),
-                    "position": player.get("position", "Unknown"),
-                    "age": player.get("age", 0),
-                    "goals_per_90": round(player.get("goals_per_90", 0), 2),
-                    "assists_per_90": round(player.get("assists_per_90", 0), 2),
-                    "performance_rating": round(player.get("performance_rating", 0), 2)
-                }
-                player_summaries.append(summary)
-                
-            return f"""
-            You are a soccer scout. Analyze these players for: "{query}"
             
-            TOP CANDIDATES:
-            {json.dumps(player_summaries, indent=2)}
+        elif prompt_type == "similarity_search":
+            ref_player = reference_players[0] if reference_players else "the reference player"
+            return f"""
+            Find players similar to {ref_player} based on the query: "{query}"
+            
+            CANDIDATES: {json.dumps(player_summaries, indent=2)}
+            
+            Focus on similarity to {ref_player}'s playing style. Provide JSON:
+            {{
+                "executive_summary": "Players most similar to {ref_player} and why",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team", 
+                        "league": "League",
+                        "tactical_reasoning": "How they are similar to {ref_player}",
+                        "key_strengths": ["strength1", "strength2"],
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Best alternative to {ref_player}"
+            }}
+            """
+            
+        elif prompt_type == "partnership_search":
+            ref_player = reference_players[0] if reference_players else "the main player"
+            return f"""
+            Find players who would work well alongside {ref_player}: "{query}"
+            
+            CANDIDATES: {json.dumps(player_summaries, indent=2)}
+            
+            Focus on tactical compatibility and complementary skills. Provide JSON:
+            {{
+                "executive_summary": "Players who would complement {ref_player}'s style",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team",
+                        "league": "League",
+                        "tactical_reasoning": "How they complement {ref_player}",
+                        "key_strengths": ["strength1", "strength2"],
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Best partner for {ref_player}"
+            }}
+            """
+            
+        elif prompt_type == "attribute_search":
+            return f"""
+            Find players based on specific attributes: "{query}"
+            
+            CANDIDATES: {json.dumps(player_summaries, indent=2)}
+            
+            Focus on the specific attribute mentioned in the query. Provide JSON:
+            {{
+                "executive_summary": "Players who excel in the requested attribute",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team",
+                        "league": "League",
+                        "tactical_reasoning": "Why they excel in this attribute",
+                        "key_strengths": ["strength1", "strength2"], 
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Top performer in the requested attribute"
+            }}
+            """
+            
+        elif prompt_type == "replacement_search":
+            return f"""
+            Find replacement/backup players: "{query}"
+            
+            CANDIDATES: {json.dumps(player_summaries, indent=2)}
+            
+            Focus on players who can step in as cover. Provide JSON:
+            {{
+                "executive_summary": "Suitable backup/replacement options",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team",
+                        "league": "League",
+                        "tactical_reasoning": "Why they're a good backup option",
+                        "key_strengths": ["strength1", "strength2"],
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Best backup/replacement option"
+            }}
+            """
+            
+        else:
+            # For age searches, general searches, formation analysis, and complex queries
+            return f"""
+            Analyze these players for: "{query}"
+            
+            CANDIDATES: {json.dumps(player_summaries, indent=2)}
             
             Provide analysis in JSON:
             {{
@@ -553,8 +680,8 @@ class AIScoutEngine:
                     {{
                         "player_name": "Player Name",
                         "current_team": "Team",
-                        "league": "League",
-                        "tactical_reasoning": "Why this player fits",
+                        "league": "League", 
+                        "tactical_reasoning": "Why this player fits the requirements",
                         "key_strengths": ["strength1", "strength2"],
                         "confidence_score": 0.8
                     }}
