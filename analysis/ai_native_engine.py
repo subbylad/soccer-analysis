@@ -338,6 +338,7 @@ class AIScoutEngine:
     def _analyze_player_relationships(self, data: pd.DataFrame, reference_players: List[str], params: Dict) -> pd.DataFrame:
         """Analyze partnerships or alternatives for reference players"""
         search_intent = params.get("search_intent", "general_search")
+        analysis_type = params.get("analysis_type", "general")
         
         if search_intent == "find_partners":
             # Find complementary players
@@ -345,6 +346,9 @@ class AIScoutEngine:
         elif search_intent == "find_alternatives":
             # Find similar players
             return self._find_similar_players(data, reference_players)
+        elif search_intent == "compare_players" or analysis_type == "comparison":
+            # For comparisons, find the specific players mentioned
+            return self._find_specific_players(data, reference_players)
         else:
             # General search - exclude reference players
             for ref_player in reference_players:
@@ -411,6 +415,29 @@ class AIScoutEngine:
         data['similarity_score'] = similarity_scores
         return data.sort_values('similarity_score', ascending=False)
     
+    def _find_specific_players(self, data: pd.DataFrame, reference_players: List[str]) -> pd.DataFrame:
+        """Find specific players mentioned in the query (for comparison)"""
+        logger.info(f"🔍 Finding specific players: {reference_players}")
+        
+        # Find exact matches for the reference players
+        specific_players = []
+        for ref_player in reference_players:
+            matches = data[data['player'].str.contains(ref_player, case=False, na=False)]
+            if not matches.empty:
+                # Take the first match (most likely)
+                specific_players.append(matches.iloc[0])
+                logger.info(f"   Found: {matches.iloc[0]['player']} ({matches.iloc[0]['team']})")
+            else:
+                logger.warning(f"   ⚠️ Player '{ref_player}' not found in database")
+        
+        if specific_players:
+            result_df = pd.DataFrame(specific_players)
+            logger.info(f"✅ Found {len(result_df)} specific players for comparison")
+            return result_df
+        else:
+            logger.warning("❌ No specific players found - returning empty dataset")
+            return pd.DataFrame()
+    
     def _apply_tactical_filters(self, data: pd.DataFrame, tactical_req: Dict) -> pd.DataFrame:
         """Apply tactical requirement filters"""
         
@@ -449,6 +476,93 @@ class AIScoutEngine:
         
         return data
     
+    def _create_dynamic_prompt(self, query: str, candidates: pd.DataFrame, parsed_params: Dict) -> str:
+        """Create dynamic GPT-4 prompts based on query complexity"""
+        analysis_type = parsed_params.get("analysis_type", "general")
+        num_candidates = len(candidates)
+        
+        # Prepare candidate data (limit based on query type)
+        if analysis_type == "comparison" and num_candidates <= 3:
+            # Simple comparison - just show the specific players
+            player_summaries = []
+            for _, player in candidates.iterrows():
+                summary = {
+                    "name": player.get("player", "Unknown"),
+                    "team": player.get("team", "Unknown"),
+                    "league": player.get("league", "Unknown"),
+                    "position": player.get("position", "Unknown"),
+                    "age": player.get("age", 0),
+                    "goals_per_90": round(player.get("goals_per_90", 0), 2),
+                    "assists_per_90": round(player.get("assists_per_90", 0), 2),
+                    "minutes": player.get("minutes", 0)
+                }
+                player_summaries.append(summary)
+            
+            # Simple comparison prompt
+            return f"""
+            You are a soccer analyst. Compare these players based on their data.
+            
+            QUERY: "{query}"
+            PLAYERS DATA:
+            {json.dumps(player_summaries, indent=2)}
+            
+            Provide a brief comparison in JSON format:
+            {{
+                "executive_summary": "Brief comparison highlighting key differences",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team",
+                        "league": "League", 
+                        "tactical_reasoning": "Brief reason why this player stands out",
+                        "key_strengths": ["strength1", "strength2"],
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Brief final recommendation"
+            }}
+            
+            Keep it concise and focus on the key differences between the players.
+            """
+        else:
+            # For complex queries, use more detailed analysis (but still shorter than before)
+            player_summaries = []
+            for _, player in candidates.head(5).iterrows():  # Limit to top 5
+                summary = {
+                    "name": player.get("player", "Unknown"),
+                    "team": player.get("team", "Unknown"),
+                    "league": player.get("league", "Unknown"),
+                    "position": player.get("position", "Unknown"),
+                    "age": player.get("age", 0),
+                    "goals_per_90": round(player.get("goals_per_90", 0), 2),
+                    "assists_per_90": round(player.get("assists_per_90", 0), 2),
+                    "performance_rating": round(player.get("performance_rating", 0), 2)
+                }
+                player_summaries.append(summary)
+                
+            return f"""
+            You are a soccer scout. Analyze these players for: "{query}"
+            
+            TOP CANDIDATES:
+            {json.dumps(player_summaries, indent=2)}
+            
+            Provide analysis in JSON:
+            {{
+                "executive_summary": "Answer to the query with key insights",
+                "top_recommendations": [
+                    {{
+                        "player_name": "Player Name",
+                        "current_team": "Team",
+                        "league": "League",
+                        "tactical_reasoning": "Why this player fits",
+                        "key_strengths": ["strength1", "strength2"],
+                        "confidence_score": 0.8
+                    }}
+                ],
+                "scout_recommendation": "Final recommendation"
+            }}
+            """
+
     # STEP 3: AI REASONING - GPT-4 provides professional scout analysis
     def generate_tactical_intelligence(self, query: str, candidates: pd.DataFrame, parsed_params: Dict) -> Dict:
         """
@@ -458,83 +572,8 @@ class AIScoutEngine:
         
         logger.info("🧠 STEP 3: AI Tactical Intelligence Generation")
         
-        # Prepare comprehensive data summary for AI analysis
-        top_candidates = candidates.head(10)
-        
-        player_summaries = []
-        for _, player in top_candidates.iterrows():
-            summary = {
-                "name": player.get("player", "Unknown"),
-                "team": player.get("team", "Unknown"),
-                "league": player.get("league", "Unknown"),
-                "position": player.get("position", "Unknown"),
-                "age": player.get("age", 0),
-                "minutes": player.get("minutes", 0),
-                "goals_per_90": round(player.get("goals_per_90", 0), 2),
-                "assists_per_90": round(player.get("assists_per_90", 0), 2),
-                "creativity_score": round(player.get("creativity_score", 0), 2),
-                "defensive_work_rate": round(player.get("defensive_work_rate", 0), 2),
-                "attacking_threat": round(player.get("attacking_threat", 0), 2),
-                "performance_rating": round(player.get("performance_rating", 0), 2)
-            }
-            player_summaries.append(summary)
-        
-        tactical_prompt = f"""
-        You are an elite soccer scout with deep tactical knowledge. Provide professional analysis based on comprehensive player data.
-        
-        ORIGINAL QUERY: "{query}"
-        
-        ANALYSIS CONTEXT:
-        - Query Type: {parsed_params.get('analysis_type', 'general')}
-        - Total Candidates Found: {len(candidates)}
-        - Search Intent: {parsed_params.get('search_intent', 'general_search')}
-        - Tactical Context: {parsed_params.get('tactical_requirements', {})}
-        
-        TOP 10 CANDIDATES DATA:
-        {json.dumps(player_summaries, indent=2)}
-        
-        Provide comprehensive professional scout analysis in JSON format:
-        {{
-            "executive_summary": "Direct answer to the query with key tactical insights",
-            "top_recommendations": [
-                {{
-                    "player_name": "Full Player Name",
-                    "current_team": "Team Name",
-                    "league": "League Name",
-                    "tactical_reasoning": "Detailed explanation of why this player fits the requirements",
-                    "key_strengths": ["strength1", "strength2", "strength3"],
-                    "tactical_role": "Specific tactical role they would play",
-                    "confidence_score": 0.85,
-                    "supporting_metrics": {{"goals_per_90": 0.3, "creativity": "high"}},
-                    "potential_concerns": "Any limitations or areas for improvement"
-                }}
-            ],
-            "tactical_analysis": {{
-                "formation_compatibility": "How they fit in different formations",
-                "playing_style_match": "Compatibility with requested playing style",
-                "partnership_dynamics": "How they work with existing players or each other"
-            }},
-            "alternative_considerations": [
-                {{
-                    "player_name": "Alternative Player",
-                    "reasoning": "Why they are worth considering as an alternative"
-                }}
-            ],
-            "professional_insights": {{
-                "market_context": "Assessment of availability and value",
-                "development_potential": "Long-term potential and trajectory",
-                "tactical_versatility": "Ability to play multiple roles or systems"
-            }},
-            "scout_recommendation": "Final professional recommendation with confidence level"
-        }}
-        
-        Focus on:
-        1. Tactical intelligence and system fit
-        2. Playing style compatibility 
-        3. Professional insights that scouts would provide
-        4. Specific metrics that support your analysis
-        5. Realistic assessment of strengths and limitations
-        """
+        # Create dynamic prompt based on query complexity
+        tactical_prompt = self._create_dynamic_prompt(query, candidates, parsed_params)
         
         # Robust OpenAI call with retry logic
         for attempt in range(2):  # Reduced retries for faster response
