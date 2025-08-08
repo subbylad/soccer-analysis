@@ -25,8 +25,9 @@ POTENTIAL_SCORING_WEIGHTS = {
 # Position filters for different analyses
 POSITION_FILTERS = {
     'defensive_midfielder': {
-        'goals_per_90_max': 0.20,
-        'assists_per_90_max': 0.25,
+        # Tighter thresholds to identify primarily defensive players
+        'goals_per_90_max': 0.10,
+        'assists_per_90_max': 0.15,
         'position_contains': 'Midfielder'
     },
     'attacking_midfielder': {
