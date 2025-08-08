@@ -15,23 +15,24 @@ A comprehensive Python toolkit for soccer data analysis, player comparison, and 
 ## Project Structure
 
 ```
-socceranalysis/
-├── data/
-│   ├── raw/               # Original downloaded data
-│   └── clean/             # Processed, analysis-ready data
-├── scripts/               # Data pipeline utilities
-│   ├── data_loader.py     # Downloads fresh data from FBref
-│   └── data_cleaner.py    # Cleans and standardizes data
+soccer-analysis/
 ├── analysis/              # Core analysis modules
-│   ├── clean_player_analyzer.py    # Main analysis class
-│   ├── young_dm_scouting.py        # Young player scouting
-│   ├── dm_attributes_analysis.py   # Defensive midfielder analysis
-│   └── check_ugochukwu_agoume.py   # Specific player analysis
-├── dashboards/
-│   ├── quick_demo.py         # Command-line demo
-│   ├── web_dashboard.py      # Interactive web dashboard (Streamlit)
-│   └── improved_dashboard.py # Enhanced player search interface
-└── notebooks/             # Reserved for Jupyter analysis
+│   ├── ai_native_engine.py
+│   └── utils.py
+├── api/                   # API endpoints and server
+│   ├── __init__.py
+│   └── ai_native_api.py
+├── scripts/               # Data pipeline and utility scripts
+│   ├── data_loader.py
+│   ├── data_cleaner.py
+│   └── ...
+├── data/                  # Data storage
+│   └── comprehensive/
+│       └── processed/     # Processed datasets
+├── tests/                 # Test suite
+│   ├── test_api.py
+│   └── test_clean_player_analyzer.py
+└── requirements.txt
 ```
 
 ## Quick Start
