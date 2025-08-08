@@ -36,8 +36,8 @@ class RevolutionaryAIAPI:
         # Configure AI analysis engine
         config = AIAnalysisConfig(
             openai_api_key=openai_api_key,
-            model="gpt-4",
-            max_candidates=50,
+            model="gpt-4o-mini",  # Faster, cost-effective model for production UX
+            max_candidates=30,      # Limit candidate set to keep prompts lightweight
             confidence_threshold=0.7,
             enable_caching=True,
             data_dir="data/comprehensive/processed"

@@ -45,19 +45,27 @@ class AIScoutEngine:
     def __init__(self, config: AIAnalysisConfig):
         self.config = config
         
-        # Configure httpx timeout settings for SSL connection control
+        # Configure httpx timeout settings for SSL connection control (tuned for fast fail)
         timeout_config = httpx.Timeout(
-            connect=10.0,      # SSL connection timeout
-            read=30.0,         # Response read timeout  
-            write=10.0,        # Request write timeout
-            pool=10.0          # Connection pool timeout
+            connect=5.0,       # Faster connection timeout
+            read=10.0,         # Faster read timeout to avoid hanging
+            write=5.0,         # Faster write timeout
+            pool=5.0           # Faster pool timeout
         )
         
-        # Initialize OpenAI client with proper timeout configuration
-        self.openai_client = OpenAI(
-            api_key=config.openai_api_key,
-            timeout=timeout_config
-        )
+        # Initialize OpenAI client with proper timeout configuration and no retries
+        try:
+            self.openai_client = OpenAI(
+                api_key=config.openai_api_key,
+                timeout=timeout_config,
+                max_retries=0
+            )
+        except TypeError:
+            # Fallback for older SDKs that don't support max_retries in constructor
+            self.openai_client = OpenAI(
+                api_key=config.openai_api_key,
+                timeout=timeout_config
+            )
         
         self.comprehensive_data = None
         self.player_profiles = {}
@@ -95,25 +103,31 @@ class AIScoutEngine:
         """Add computed metrics for AI analysis"""
         logger.info("📊 Computing enhanced metrics for AI analysis...")
         
+        # Prepare safe denominator for per-90 style metrics
+        if 'nineties' in self.comprehensive_data.columns:
+            nineties_denominator = self.comprehensive_data['nineties'].replace(0, 1)
+        else:
+            nineties_denominator = pd.Series(1, index=self.comprehensive_data.index)
+
         # Defensive work rate indicator
         self.comprehensive_data['defensive_work_rate'] = (
             self.comprehensive_data.get('tackles', 0) + 
             self.comprehensive_data.get('tackles_won', 0) * 2 +
             self.comprehensive_data.get('interceptions', 0)
-        ) / self.comprehensive_data.get('nineties', 1).replace(0, 1)
+        ) / nineties_denominator
         
         # Creative ability indicator
         self.comprehensive_data['creativity_score'] = (
             self.comprehensive_data.get('assists_per_90', 0) * 3 +
             self.comprehensive_data.get('expected_assists_per_90', 0) * 2 +
-            self.comprehensive_data.get('progressive_passes', 0) / self.comprehensive_data.get('nineties', 1).replace(0, 1)
+            (self.comprehensive_data.get('progressive_passes', 0) / nineties_denominator)
         )
         
         # Attacking threat indicator
         self.comprehensive_data['attacking_threat'] = (
             self.comprehensive_data.get('goals_per_90', 0) * 4 +
             self.comprehensive_data.get('expected_goals_per_90', 0) * 3 +
-            self.comprehensive_data.get('progressive_carries', 0) / self.comprehensive_data.get('nineties', 1).replace(0, 1)
+            (self.comprehensive_data.get('progressive_carries', 0) / nineties_denominator)
         )
         
         # Overall performance indicator
@@ -209,9 +223,9 @@ class AIScoutEngine:
         """
         
         # Robust OpenAI call with retry logic
-        for attempt in range(2):  # Reduced retries for faster response
+        for attempt in range(1):  # Single attempt for faster response
             try:
-                logger.info(f"🧠 Attempting query parsing (attempt {attempt + 1}/3)")
+                logger.info(f"🧠 Attempting query parsing (attempt {attempt + 1}/1)")
                 
                 response = self.openai_client.chat.completions.create(
                     model=self.config.model,
@@ -220,8 +234,7 @@ class AIScoutEngine:
                         {"role": "user", "content": parsing_prompt}
                     ],
                     temperature=0.1,
-                    max_tokens=800,
-                    timeout=8  # Reduced timeout for Railway compatibility
+                    max_tokens=600
                 )
                 
                 # Validate response
@@ -234,15 +247,11 @@ class AIScoutEngine:
                 
             except json.JSONDecodeError as e:
                 logger.warning(f"⚠️ JSON parsing failed (attempt {attempt + 1}): {e}")
-                if attempt == 2:  # Last attempt
-                    return self._fallback_query_parsing(query)
-                time.sleep(1)  # Wait before retry
+                return self._fallback_query_parsing(query)
                 
             except Exception as e:
                 logger.warning(f"⚠️ OpenAI parsing failed (attempt {attempt + 1}): {e}")
-                if attempt == 2:  # Last attempt
-                    return self._fallback_query_parsing(query)
-                time.sleep(1)  # Wait before retry
+                return self._fallback_query_parsing(query)
         
         # Should never reach here, but just in case
         return self._fallback_query_parsing(query)
@@ -718,9 +727,9 @@ class AIScoutEngine:
         tactical_prompt = self._create_dynamic_prompt(query, candidates, parsed_params)
         
         # Robust OpenAI call with retry logic
-        for attempt in range(2):  # Reduced retries for faster response
+        for attempt in range(1):  # Single attempt for faster response
             try:
-                logger.info(f"🧠 Attempting tactical analysis (attempt {attempt + 1}/3)")
+                logger.info(f"🧠 Attempting tactical analysis (attempt {attempt + 1}/1)")
                 
                 response = self.openai_client.chat.completions.create(
                     model=self.config.model,
@@ -729,8 +738,7 @@ class AIScoutEngine:
                         {"role": "user", "content": tactical_prompt}
                     ],
                     temperature=0.3,  # Balance creativity with consistency
-                    max_tokens=2000,
-                    timeout=12  # Reduced timeout for Railway compatibility
+                    max_tokens=1200
                 )
                 
                 # Validate response
@@ -743,15 +751,11 @@ class AIScoutEngine:
                 
             except json.JSONDecodeError as e:
                 logger.warning(f"⚠️ JSON parsing failed (attempt {attempt + 1}): {e}")
-                if attempt == 2:  # Last attempt
-                    return self._fallback_tactical_analysis(query, candidates, parsed_params)
-                time.sleep(2)  # Wait before retry
+                return self._fallback_tactical_analysis(query, candidates, parsed_params)
                 
             except Exception as e:
                 logger.warning(f"⚠️ OpenAI tactical analysis failed (attempt {attempt + 1}): {e}")
-                if attempt == 2:  # Last attempt
-                    return self._fallback_tactical_analysis(query, candidates, parsed_params)
-                time.sleep(2)  # Wait before retry
+                return self._fallback_tactical_analysis(query, candidates, parsed_params)
         
         # Should never reach here, but just in case
         return self._fallback_tactical_analysis(query, candidates, parsed_params)
@@ -816,7 +820,7 @@ class AIScoutEngine:
         logger.info("=" * 80)
         
         start_time = time.time()
-        MAX_EXECUTION_TIME = 45  # Railway timeout safety margin (60s total - 15s for network/response)
+        MAX_EXECUTION_TIME = 35  # Tighter timeout to prevent frontend timeouts
         
         try:
             # STEP 1: AI Natural Language Parsing
@@ -828,6 +832,12 @@ class AIScoutEngine:
                     "step_failed": "timeout_protection"
                 }
             
+            # Cache lookup to avoid repeated OpenAI calls
+            cache_key = query.strip().lower()
+            if self.config.enable_caching and cache_key in self.query_cache:
+                logger.info("🔁 Cache hit for query - returning cached result")
+                return self.query_cache[cache_key]
+
             parsed_params = self.parse_natural_language_query(query)
             
             if parsed_params.get("error"):
@@ -902,6 +912,9 @@ class AIScoutEngine:
             logger.info(f"   🧠 Generated professional tactical intelligence")
             logger.info("=" * 80)
             
+            # Save to cache for subsequent identical queries
+            if self.config.enable_caching:
+                self.query_cache[cache_key] = final_result
             return final_result
             
         except Exception as e:
