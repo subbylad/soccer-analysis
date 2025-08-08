@@ -103,11 +103,10 @@ def calculate_potential_score(player_row: pd.Series,
     else:
         age_factor = (max_age - age) * weights['age_factor']
     
-    # Calculate progressive total
-    prog_total = player_row['progressive_carries'] + player_row['progressive_passes']
-    
+    # Apply separate weights for carries and passes
     score = (
-        prog_total * weights['progressive_carries'] +
+        player_row['progressive_carries'] * weights['progressive_carries'] +
+        player_row['progressive_passes'] * weights['progressive_passes'] +
         player_row['minutes'] * weights['minutes'] +
         age_factor +
         player_row['expected_goals'] * weights['expected_goals'] +
