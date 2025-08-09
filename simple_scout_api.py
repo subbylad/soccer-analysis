@@ -130,7 +130,7 @@ Only include fields that are clearly mentioned in the query."""
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-5-nano",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a query parser. Extract filter criteria from soccer queries. Return simple key-value pairs."},
                     {"role": "user", "content": prompt}
@@ -167,7 +167,8 @@ Only include fields that are clearly mentioned in the query."""
             return filters
             
         except Exception as e:
-            logger.warning(f"⚠️ Parser failed, using fallback: {e}")
+            logger.error(f"❌ OpenAI API call failed (gpt-3.5-turbo): {e}")
+            logger.warning(f"⚠️ Using fallback parser instead")
             return self._fallback_parser(query)
     
     def _fallback_parser(self, query: str) -> Dict[str, Any]:
@@ -312,7 +313,7 @@ Do not use JSON or structured formats. Write naturally as if talking to a coach.
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional soccer scout providing clear, concise analysis."},
                     {"role": "user", "content": prompt}
@@ -327,7 +328,8 @@ Do not use JSON or structured formats. Write naturally as if talking to a coach.
             return analysis
             
         except Exception as e:
-            logger.error(f"❌ GPT-5-mini analysis failed: {e}")
+            logger.error(f"❌ OpenAI API call failed (gpt-4o-mini): {e}")
+            logger.warning(f"⚠️ Using fallback analysis instead")
             return self._fallback_analysis(query, players_df, filters)
     
     def _fallback_analysis(self, query: str, players_df: pd.DataFrame, filters: Dict) -> str:
@@ -432,8 +434,9 @@ def initialize_scout():
     global scout_ai
     openai_key = os.getenv('OPENAI_API_KEY')
     
-    if not openai_key:
-        logger.warning("⚠️ No OpenAI API key found")
+    if not openai_key or openai_key == 'your-openai-api-key-here':
+        logger.error("❌ No valid OpenAI API key found in environment variables")
+        logger.error("   Please set OPENAI_API_KEY in Railway environment variables")
         return False
     
     try:
