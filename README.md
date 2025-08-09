@@ -6,16 +6,17 @@ A simplified AI-powered soccer scout that uses GPT-5 models to analyze 2,854 pla
 
 ### Local Development
 ```bash
-# Set OpenAI API key
-export OPENAI_API_KEY="your-gpt-5-api-key"
+# 1. Set up environment
+./setup_env.sh
+# Edit .env and add your OpenAI API key
 
-# Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# Run server
+# 3. Run server
 python3 simple_scout_api.py
 
-# Test
+# 4. Test
 curl http://localhost:8080/health
 ```
 

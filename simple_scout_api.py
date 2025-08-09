@@ -22,6 +22,13 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 import re
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not installed, will use system env vars
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
