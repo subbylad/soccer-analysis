@@ -112,19 +112,24 @@ Extract ONLY what's explicitly mentioned. Return simple key-value pairs, no JSON
 Query: "{query}"
 
 Extract these if mentioned:
-- position: (e.g., "Midfielder", "Forward", "Defender")
+- position: MUST be one of: "Midfielder", "Forward", "Defender", "Goalkeeper"
+  (Map common terms: DM/CDM/CM/CAM → Midfielder, ST/CF/Winger → Forward, CB/LB/RB → Defender, GK → Goalkeeper)
+  
 - league: MUST be one of: "ENG-Premier League", "ESP-La Liga", "ITA-Serie A", "GER-Bundesliga", "FRA-Ligue 1"
-- age_max: (number)
-- age_min: (number)
+  (Map variations: England/EPL/Prem → ENG-Premier League, Spain → ESP-La Liga, Italy → ITA-Serie A, 
+   Germany/Buli → GER-Bundesliga, France/L1 → FRA-Ligue 1)
+  
+- age_max: (number - for "under X", "U21", "young")
+- age_min: (number - for "over X", "veteran")
 - min_minutes: (number, default 500 if not specified)
-- style: (e.g., "creative", "defensive", "fast", "physical")
-- similar_to: (player name if comparing)
+- style: (creative, defensive, fast)
+- similar_to: (exact player name if comparing)
 
 Example output:
 position: Midfielder
 league: FRA-Ligue 1
-age_max: 25
-style: creative
+age_max: 21
+style: defensive
 
 Only include fields that are clearly mentioned in the query."""
 
@@ -171,50 +176,175 @@ Only include fields that are clearly mentioned in the query."""
             logger.warning(f"⚠️ Using fallback parser instead")
             return self._fallback_parser(query)
     
+    def _get_position_mapping(self):
+        """Comprehensive position mappings"""
+        return {
+            # Midfielders
+            'midfielder': 'Midfielder',
+            'midfield': 'Midfielder',
+            'mid': 'Midfielder',
+            'cm': 'Midfielder',
+            'cdm': 'Midfielder',
+            'cam': 'Midfielder',
+            'dm': 'Midfielder',
+            'defensive midfielder': 'Midfielder',
+            'attacking midfielder': 'Midfielder',
+            'central midfielder': 'Midfielder',
+            'box to box': 'Midfielder',
+            'playmaker': 'Midfielder',
+            
+            # Forwards
+            'forward': 'Forward',
+            'striker': 'Forward',
+            'attacker': 'Forward',
+            'cf': 'Forward',
+            'st': 'Forward',
+            'winger': 'Forward',
+            'wing': 'Forward',
+            'lw': 'Forward',
+            'rw': 'Forward',
+            'left winger': 'Forward',
+            'right winger': 'Forward',
+            
+            # Defenders
+            'defender': 'Defender',
+            'defense': 'Defender',
+            'defence': 'Defender',
+            'cb': 'Defender',
+            'center back': 'Defender',
+            'centre back': 'Defender',
+            'fullback': 'Defender',
+            'full back': 'Defender',
+            'lb': 'Defender',
+            'rb': 'Defender',
+            'left back': 'Defender',
+            'right back': 'Defender',
+            'wing back': 'Defender',
+            'wingback': 'Defender',
+            
+            # Goalkeeper
+            'goalkeeper': 'Goalkeeper',
+            'keeper': 'Goalkeeper',
+            'gk': 'Goalkeeper',
+            'goalie': 'Goalkeeper'
+        }
+    
+    def _get_league_mapping(self):
+        """Comprehensive league mappings"""
+        return {
+            # Premier League variations
+            'premier league': 'ENG-Premier League',
+            'epl': 'ENG-Premier League',
+            'pl': 'ENG-Premier League',
+            'england': 'ENG-Premier League',
+            'english': 'ENG-Premier League',
+            'prem': 'ENG-Premier League',
+            
+            # La Liga variations
+            'la liga': 'ESP-La Liga',
+            'laliga': 'ESP-La Liga',
+            'spain': 'ESP-La Liga',
+            'spanish': 'ESP-La Liga',
+            'liga': 'ESP-La Liga',
+            
+            # Serie A variations
+            'serie a': 'ITA-Serie A',
+            'seriea': 'ITA-Serie A',
+            'italy': 'ITA-Serie A',
+            'italian': 'ITA-Serie A',
+            'serie': 'ITA-Serie A',
+            
+            # Bundesliga variations
+            'bundesliga': 'GER-Bundesliga',
+            'germany': 'GER-Bundesliga',
+            'german': 'GER-Bundesliga',
+            'buli': 'GER-Bundesliga',
+            
+            # Ligue 1 variations
+            'ligue 1': 'FRA-Ligue 1',
+            'ligue1': 'FRA-Ligue 1',
+            'france': 'FRA-Ligue 1',
+            'french': 'FRA-Ligue 1',
+            'ligue': 'FRA-Ligue 1',
+            'l1': 'FRA-Ligue 1'
+        }
+    
     def _fallback_parser(self, query: str) -> Dict[str, Any]:
-        """Simple regex-based fallback parser"""
+        """Simple regex-based fallback parser with comprehensive mappings"""
         filters = {'min_minutes': 500}
         query_lower = query.lower()
         
-        # Position detection
-        positions = {
-            'midfielder': 'Midfielder',
-            'forward': 'Forward',
-            'striker': 'Forward',
-            'winger': 'Forward',
-            'defender': 'Defender',
-            'goalkeeper': 'Goalkeeper'
-        }
-        
+        # Position detection with comprehensive mapping
+        positions = self._get_position_mapping()
         for term, position in positions.items():
             if term in query_lower:
                 filters['position'] = position
                 break
         
-        # League detection
-        leagues = {
-            'premier league': 'ENG-Premier League',
-            'la liga': 'ESP-La Liga',
-            'serie a': 'ITA-Serie A',
-            'bundesliga': 'GER-Bundesliga',
-            'ligue 1': 'FRA-Ligue 1'
-        }
-        
+        # League detection with comprehensive mapping
+        leagues = self._get_league_mapping()
         for term, league in leagues.items():
             if term in query_lower:
                 filters['league'] = league
                 break
         
-        # Age detection
-        age_match = re.search(r'under (\d+)', query_lower)
-        if age_match:
-            filters['age_max'] = int(age_match.group(1))
+        # Age detection - multiple patterns
+        age_patterns = [
+            (r'under (\d+)', 'age_max'),
+            (r'u(\d+)', 'age_max'),
+            (r'younger than (\d+)', 'age_max'),
+            (r'over (\d+)', 'age_min'),
+            (r'older than (\d+)', 'age_min'),
+            (r'(\d+) years old', 'age_exact'),
+            (r'age (\d+)', 'age_exact')
+        ]
+        
+        for pattern, age_type in age_patterns:
+            match = re.search(pattern, query_lower)
+            if match:
+                age = int(match.group(1))
+                if age_type == 'age_exact':
+                    filters['age_min'] = age - 1
+                    filters['age_max'] = age + 1
+                else:
+                    filters[age_type] = age
+                break
         
         # Style detection
-        if 'creative' in query_lower:
-            filters['style'] = 'creative'
-        elif 'defensive' in query_lower:
-            filters['style'] = 'defensive'
+        style_mappings = {
+            'creative': 'creative',
+            'playmaker': 'creative',
+            'technical': 'creative',
+            'defensive': 'defensive',
+            'destroyer': 'defensive',
+            'physical': 'defensive',
+            'fast': 'fast',
+            'pace': 'fast',
+            'quick': 'fast',
+            'speedy': 'fast'
+        }
+        
+        for term, style in style_mappings.items():
+            if term in query_lower:
+                filters['style'] = style
+                break
+        
+        # Young player detection
+        if any(word in query_lower for word in ['young', 'prospect', 'talent', 'wonderkid']):
+            if 'age_max' not in filters:
+                filters['age_max'] = 23
+        
+        # Similar player detection
+        similar_keywords = ['similar to', 'like', 'replacement for', 'alternative to']
+        for keyword in similar_keywords:
+            if keyword in query_lower:
+                # Extract player name after the keyword
+                pattern = f"{keyword}\\s+([\\w\\s]+?)(?:\\s+in\\s+|\\s+for\\s+|$)"
+                match = re.search(pattern, query_lower)
+                if match:
+                    player_name = match.group(1).strip()
+                    filters['similar_to'] = player_name
+                    break
             
         return filters
     
