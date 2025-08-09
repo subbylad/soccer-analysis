@@ -113,7 +113,7 @@ Query: "{query}"
 
 Extract these if mentioned:
 - position: (e.g., "Midfielder", "Forward", "Defender")
-- league: (e.g., "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1")
+- league: MUST be one of: "ENG-Premier League", "ESP-La Liga", "ITA-Serie A", "GER-Bundesliga", "FRA-Ligue 1"
 - age_max: (number)
 - age_min: (number)
 - min_minutes: (number, default 500 if not specified)
@@ -122,7 +122,7 @@ Extract these if mentioned:
 
 Example output:
 position: Midfielder
-league: Premier League
+league: FRA-Ligue 1
 age_max: 25
 style: creative
 
