@@ -678,9 +678,40 @@ def index():
         "endpoints": {
             "POST /chat": "Main chat endpoint",
             "POST /api/query": "Legacy query endpoint",
-            "GET /health": "Health check"
+            "GET /health": "Health check",
+            "GET /logs": "Recent logs (last 50 lines)"
         },
         "status": "ready" if scout_initialized else "not_initialized"
+    })
+
+
+# Keep recent logs in memory for quick access
+from collections import deque
+recent_logs = deque(maxlen=50)
+
+# Custom log handler to capture logs
+class MemoryHandler(logging.Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        recent_logs.append({
+            'timestamp': datetime.now().isoformat(),
+            'level': record.levelname,
+            'message': log_entry
+        })
+
+# Add memory handler to logger
+memory_handler = MemoryHandler()
+memory_handler.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(memory_handler)
+
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    """Get recent logs for debugging"""
+    return jsonify({
+        "logs": list(recent_logs),
+        "count": len(recent_logs),
+        "oldest": recent_logs[0]['timestamp'] if recent_logs else None,
+        "newest": recent_logs[-1]['timestamp'] if recent_logs else None
     })
 
 
