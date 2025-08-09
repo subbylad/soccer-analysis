@@ -501,16 +501,38 @@ def chat():
 @app.route('/api/query', methods=['POST'])
 def api_query():
     """Legacy API endpoint for compatibility"""
-    # Transform to chat format
+    if not scout_initialized:
+        return jsonify({
+            "success": False,
+            "response_text": "Scout AI not initialized. Please check server configuration.",
+            "recommendations": [],
+            "summary": "Service unavailable"
+        }), 503
+    
     try:
         data = request.get_json()
-        query = data.get('query', '')
+        query = data.get('query', '').strip()
         
-        # Reuse chat endpoint logic
-        request.json = {'message': query}
-        return chat()
-    except:
-        return chat()
+        if not query:
+            return jsonify({
+                "success": False,
+                "response_text": "Please provide a query",
+                "recommendations": [],
+                "summary": "Empty query"
+            }), 400
+        
+        # Analyze the query using the same logic as chat
+        result = scout_ai.analyze(query)
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"API query endpoint error: {e}")
+        return jsonify({
+            "success": False,
+            "response_text": "An error occurred processing your request",
+            "recommendations": [],
+            "summary": "Server error"
+        }), 500
 
 
 @app.route('/', methods=['GET'])
