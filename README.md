@@ -1,233 +1,81 @@
-# Soccer Data Analysis Toolkit ⚽
+# Soccer Scout AI - Simple & Reliable
 
-A comprehensive Python toolkit for soccer data analysis, player comparison, and scouting using data from the Big 5 European leagues.
+A simplified AI-powered soccer scout that uses GPT-5 models to analyze 2,854 players from Europe's top 5 leagues.
 
-## Features
+## 🚀 Quick Start
 
-✅ **Data Collection**: Automated download and cleaning of player statistics from FBref  
-✅ **Player Search**: Find players by name with comprehensive stats  
-✅ **Player Comparison**: Compare multiple players across key metrics  
-✅ **Scouting Tools**: Young player discovery and potential analysis  
-✅ **Position Analysis**: Deep dive into defensive midfielder attributes  
-✅ **Clean Data Pipeline**: Properly processed and standardized datasets  
-✅ **Interactive Web Dashboard**: Modern web interface with charts and visualizations  
-
-## Project Structure
-
-```
-soccer-analysis/
-├── analysis/              # Core analysis modules
-│   ├── ai_native_engine.py
-│   └── utils.py
-├── api/                   # API endpoints and server
-│   ├── __init__.py
-│   └── ai_native_api.py
-├── scripts/               # Data pipeline and utility scripts
-│   ├── data_loader.py
-│   ├── data_cleaner.py
-│   └── ...
-├── data/                  # Data storage
-│   └── comprehensive/
-│       └── processed/     # Processed datasets
-├── tests/                 # Test suite
-│   ├── test_api.py
-│   └── test_clean_player_analyzer.py
-└── requirements.txt
-```
-
-## Quick Start
-
-### 1. 🌐 Web Dashboard (Recommended)
+### Local Development
 ```bash
-# Easy launcher
-python3 run_dashboard.py
+# Set OpenAI API key
+export OPENAI_API_KEY="your-gpt-5-api-key"
 
-# Or directly with Streamlit
-python3 -m streamlit run dashboards/web_dashboard.py
+# Install dependencies
+pip install -r requirements.txt
+
+# Run server
+python3 simple_scout_api.py
+
+# Test
+curl http://localhost:8080/health
 ```
 
-**Features:**
-- 🔍 **Player Search**: Interactive search with filters
-- 🏆 **Top Performers**: Visual charts of best players
-- 🌟 **Young Prospects**: Scouting analysis with scoring
-- 🌍 **League Analysis**: Compare leagues and distributions
-- 📊 **Interactive Charts**: Hover, zoom, filter data
-
-**Dashboard will open in your browser at:** `http://localhost:8501`
-
-### 2. Command-Line Demo
+### Example Queries
 ```bash
-python3 dashboards/quick_demo.py
+# Find young players
+curl -X POST http://localhost:8080/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Find creative midfielders in Premier League under 21"}'
+
+# Compare players
+curl -X POST http://localhost:8080/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Compare Haaland vs Mbappé"}'
 ```
 
-This will show:
-- Top goal scorers and assist providers
-- Player search examples
-- Player comparisons
-- Goals + assists leaderboard
+## 🏗️ Architecture
 
-### 3. Basic Usage Examples
+### Two-Stage AI System
+1. **GPT-5-nano Parser**: Converts natural language to filter criteria
+2. **Database Filter**: Efficient pandas filtering on 2,854 players
+3. **GPT-5-mini Analysis**: Generates conversational scout insights
 
-#### Search for a Player
-```python
-from analysis.clean_player_analyzer import CleanPlayerAnalyzer
+### Key Features
+- ✅ No JSON parsing issues
+- ✅ Reliable fallback mechanisms
+- ✅ Fast response times
+- ✅ Frontend compatible
+- ✅ Professional scout insights
 
-analyzer = CleanPlayerAnalyzer()
+## 📊 Data Coverage
+- **Players**: 2,854 from Big 5 European leagues
+- **Season**: 2024/25
+- **Leagues**: Premier League, La Liga, Serie A, Bundesliga, Ligue 1
+- **Metrics**: 50+ per player including computed metrics
 
-# Search for players
-haaland_stats = analyzer.search_players("Haaland")
-print(haaland_stats)
+## 🌐 API Endpoints
+
+- `POST /chat` - Main chat endpoint
+- `POST /api/query` - Legacy compatibility endpoint
+- `GET /health` - Health check
+- `GET /` - API information
+
+## 🚢 Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Railway deployment instructions.
+
+## 📁 Project Structure
+```
+simple_scout_api.py    # Main API server
+data/                  # Player database
+  comprehensive/
+    processed/
+      unified_player_data.csv
+requirements.txt       # Python dependencies
+railway.toml          # Railway config
+gunicorn.conf.py      # Production server config
 ```
 
-#### Compare Players
-```python
-# Compare top strikers
-comparison = analyzer.compare_players(["Haaland", "Mbappé", "Kane"])
-print(comparison)
-```
-
-#### Scout Young Defensive Midfielders
-```python
-# Run young DM scouting analysis
-python3 analysis/young_dm_scouting.py
-```
-
-#### Analyze Defensive Midfielder Attributes
-```python
-# Deep dive into what makes DMs effective
-python3 analysis/dm_attributes_analysis.py
-```
-
-## Data Sources
-
-- **FBref**: Player and team statistics from Big 5 European leagues
-  - English Premier League
-  - Spanish La Liga  
-  - Italian Serie A
-  - German Bundesliga
-  - French Ligue 1
-
-## Key Metrics Available
-
-**Standard Stats**: Goals, Assists, Minutes Played, Cards, etc.  
-**Shooting**: Shots, Shot Accuracy, Expected Goals (xG)  
-**Passing**: Pass Completion, Progressive Passes, Expected Assists (xAG)  
-**Defense**: Tackles, Interceptions, Clearances  
-
-## Current Season Data
-
-The toolkit currently loads **2024/25 season data** with:
-- **2,853 players** across all positions
-- **96 teams** from the Big 5 leagues
-- Minimum 300 minutes played filter (adjustable)
-
-## Sample Output
-
-```
-🏈 SOCCER DATA ANALYSIS TOOLKIT DEMO 🏈
-
-Top 10 Goal Scorers (500+ minutes):
- 1. Kylian Mbappé        (Real Madrid    ) - 31 goals (0.96/90min)
- 2. Mohamed Salah        (Liverpool      ) - 29 goals (0.77/90min)
- 3. Robert Lewandowski   (Barcelona      ) - 27 goals (0.91/90min)
- 4. Harry Kane           (Bayern Munich  ) - 26 goals (0.98/90min)
- 5. Mateo Retegui        (Atalanta       ) - 25 goals (0.94/90min)
-```
-
-## Advanced Features
-
-### 🔍 **Scouting Analysis**
-- Young player discovery (under 23)
-- Potential scoring algorithm
-- Position-specific analysis
-- League-by-league breakdown
-
-### 📊 **Defensive Midfielder Deep Dive**
-- Progressive passing vs carrying analysis
-- Comparison of DM vs attacking midfielders
-- Individual player rankings and percentiles
-- League style differences
-
-### 🧹 **Clean Data Pipeline**
-- Automated data cleaning and standardization
-- Proper column naming and data types
-- Position normalization
-- Raw data preservation
-
-## Recent Analysis Examples
-
-- **Baleba vs Ligue 1**: Found Florian Sotoca (Lens) as closest statistical match
-- **Young DM Prospects**: Identified Pedri, Diego Moreira, and Warren Zaïre-Emery as top prospects
-- **DM Attributes**: Discovered DMs excel in durability and progressive passing, not carrying
-
-## Dependencies
-
-- `soccerdata`: Soccer data scraping and API
-- `pandas`: Data manipulation and analysis  
-- `matplotlib`: Basic plotting
-- `seaborn`: Statistical visualizations
-- `numpy`: Numerical computations
-
-## Installation
-
-```bash
-# Install required dependencies
-pip install soccerdata pandas matplotlib seaborn numpy
-
-# For web dashboard
-pip install streamlit plotly
-
-# For development and testing
-pip install pytest pytest-cov
-```
-
-## Testing
-
-The project includes a comprehensive test suite to ensure reliability:
-
-```bash
-# Run all tests
-pytest
-
-# Run tests with coverage report
-pytest --cov=analysis tests/
-
-# Run specific test file
-pytest tests/test_clean_player_analyzer.py -v
-```
-
-## Development
-
-### Project Architecture
-
-- **CleanPlayerAnalyzer**: Main analysis class with robust error handling
-- **Utility Functions**: Shared configuration and helper functions in `analysis/utils.py`
-- **Specialized Modules**: Young player scouting, DM analysis, specific player evaluation
-- **Logging**: Structured logging throughout with configurable levels
-- **Type Hints**: Full type annotation support for better development experience
-
-### Configuration
-
-Key parameters can be customized via `analysis/utils.py`:
-
-```python
-# Potential scoring weights
-POTENTIAL_SCORING_WEIGHTS = {
-    'goals_per_90': 3.0,
-    'assists_per_90': 3.0, 
-    'progressive_carries': 0.05,
-    'progressive_passes': 0.02
-}
-
-# Playing time thresholds
-MIN_MINUTES_THRESHOLDS = {
-    'basic_analysis': 300,
-    'comparison': 500,
-    'scouting': 500,
-    'high_usage': 2000
-}
-```
-
----
-
-**Ready to discover the next soccer superstar!** 🌟
+## 🔧 Environment Variables
+- `OPENAI_API_KEY` - Required for AI features
+- `PORT` - Server port (default: 8080)
+- `DEBUG` - Enable debug mode (default: false)
