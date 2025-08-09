@@ -1,1 +1,1 @@
-web: gunicorn --config gunicorn.conf.py ai_native_server:app
+web: gunicorn --config gunicorn.conf.py simple_scout_api:app
