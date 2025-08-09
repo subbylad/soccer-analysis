@@ -312,7 +312,7 @@ Do not use JSON or structured formats. Write naturally as if talking to a coach.
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-5-mini",  # Fast, reliable GPT-5 model
+                model="gpt-5-mini",
                 messages=[
                     {"role": "system", "content": "You are a professional soccer scout providing clear, concise analysis."},
                     {"role": "user", "content": prompt}

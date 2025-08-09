@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "gunicorn --config gunicorn.conf.py simple_scout_api:app"
+startCommand = "gunicorn --config gunicorn.conf.py app:app"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
